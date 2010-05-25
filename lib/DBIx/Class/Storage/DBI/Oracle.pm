@@ -19,12 +19,12 @@ sub _rebless {
 }
 
 sub _supports_insert_returning {
-  my $self = shift;
+    my $self = shift;
 
-  return 1
-    if $self->_server_info->{normalized_dbms_version} >= 10;
+    return 1
+        if $self->_server_info->{normalized_dbms_version} >= 10;
 
-  return 0;
+    return 0;
 }
 
 1;
