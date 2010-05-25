@@ -8,20 +8,14 @@ use mro 'c3';
 
 sub _rebless {
     my ($self) = @_;
+    
+    # Default driver
+    my $class = $self->_server_info->{normalized_dbms_version} <= 8
+        ? 'DBIx::Class::Storage::DBI::Oracle::WhereJoins'
+        : 'DBIx::Class::Storage::DBI::Oracle::Generic';
 
-    my $version = eval { $self->_get_dbh->get_info(18); };
-
-    if ( !$@ ) {
-        my ($major, $minor, $patchlevel) = split(/\./, $version);
-
-        # Default driver
-        my $class = $major <= 8
-          ? 'DBIx::Class::Storage::DBI::Oracle::WhereJoins'
-          : 'DBIx::Class::Storage::DBI::Oracle::Generic';
-
-        $self->ensure_class_loaded ($class);
-        bless $self, $class;
-    }
+    $self->ensure_class_loaded ($class);
+    bless $self, $class;
 }
 
 1;
