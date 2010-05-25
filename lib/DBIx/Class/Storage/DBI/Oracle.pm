@@ -9,24 +9,24 @@ use mro 'c3';
 __PACKAGE__->sql_maker_class('DBIx::Class::SQLAHacks::Oracle');
 
 sub _rebless {
-    my ($self) = @_;
-    
-    # Default driver
-    my $class = $self->_server_info->{normalized_dbms_version} <= 8
-        ? 'DBIx::Class::Storage::DBI::Oracle::WhereJoins'
-        : 'DBIx::Class::Storage::DBI::Oracle::Generic';
+  my ($self) = @_;
 
-    $self->ensure_class_loaded ($class);
-    bless $self, $class;
+  # Default driver
+  my $class = $self->_server_info->{normalized_dbms_version} <= 8
+    ? 'DBIx::Class::Storage::DBI::Oracle::WhereJoins'
+    : 'DBIx::Class::Storage::DBI::Oracle::Generic';
+
+  $self->ensure_class_loaded ($class);
+  bless $self, $class;
 }
 
 sub _supports_insert_returning {
-    my $self = shift;
+  my $self = shift;
 
-    return 1
-        if $self->_server_info->{normalized_dbms_version} >= 10;
+  return 1
+    if $self->_server_info->{normalized_dbms_version} >= 10;
 
-    return 0;
+  return 0;
 }
 
 1;
