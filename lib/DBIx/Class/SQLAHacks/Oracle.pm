@@ -8,7 +8,7 @@ use Carp::Clan qw/^DBIx::Class|^SQL::Abstract/;
 # Oracle has a different INSERT...RETURNING syntax
 #
 
-sub _generate_bind_param_name {
+sub _gen_io_bind_name {
   my ($self, $colname) = @_;
 
   return ":$colname";
@@ -24,9 +24,9 @@ sub _insert_returning {
   });
   
   my $bind_f = $self->_SWITCH_refkind($fields, {
-    ARRAYREF     => sub {join ', ', map { $self->_generate_bind_param_name($_) } @$fields;},
-    SCALAR       => sub {$self->_generate_bind_param_name($fields)},
-    SCALARREF    => sub {$self->_generate_bind_param_name($$fields)},
+    ARRAYREF     => sub {join ', ', map { $self->_gen_io_bind_name($_) } @$fields;},
+    SCALAR       => sub {$self->_gen_io_bind_name($fields)},
+    SCALARREF    => sub {$self->_gen_io_bind_name($$fields)},
   });
   
   return join (' ', $self->_sqlcase(' returning'), $f, $self->_sqlcase('into'), $bind_f);
