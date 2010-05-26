@@ -16,7 +16,13 @@ sub _insert_returning {
     SCALARREF    => sub {$$fields},
   });
   
-  return join (' ', $self->_sqlcase(' returning'), $f, $self->_sqlcase('into'), ":$f");
+  my $bind_f = $self->_SWITCH_refkind($fields, {
+    ARRAYREF     => sub {join ', ', map { $self->_quote(":$_") } @$fields;},
+    SCALAR       => sub {$self->_quote(":$fields")},
+    SCALARREF    => sub {":$$fields"},
+  });
+  
+  return join (' ', $self->_sqlcase(' returning'), $f, $self->_sqlcase('into'), $bind_f);
 }
 
 1;
