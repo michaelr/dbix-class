@@ -270,6 +270,7 @@ sub parse {
     my $dependencies = {
       map { $_ => _resolve_deps ($_, \%tables) } (keys %tables)
     };
+
     for my $table (sort
       {
         keys %{$dependencies->{$a} || {} } <=> keys %{ $dependencies->{$b} || {} }
@@ -298,9 +299,25 @@ EOW
     }
 
     my %views;
-    foreach my $moniker (sort keys %view_monikers)
+    my @views = map { $dbicschema->source($_) } keys %view_monikers;
+
+    my $view_dependencies = {
+        map {
+            $_ => _resolve_view_deps( $dbicschema->source($_), \%view_monikers )
+          } ( keys %view_monikers )
+    };
+
+    my @view_sources =
+      sort {
+        keys %{ $view_dependencies->{ $a->source_name }   || {} } <=>
+          keys %{ $view_dependencies->{ $b->source_name } || {} }
+          || $a->source_name cmp $b->source_name
+      }
+      map { $dbicschema->source($_) }
+      keys %view_monikers;
+
+    foreach my $source (@view_sources)
     {
-        my $source = $dbicschema->source($moniker);
         my $view_name = $source->name;
 
         # FIXME - this isn't the right way to do it, but sqlt does not
@@ -366,6 +383,32 @@ sub _resolve_deps {
   }
 
   return $ret;
+}
+
+sub _resolve_view_deps {
+    my ( $view, $monikers, $seen ) = @_;
+
+    my $ret = {};
+    $seen ||= {};
+
+    # copy and bump all deps by one (so we can reconstruct the chain)
+    my %seen = map { $_ => $seen->{$_} + 1 } ( keys %$seen );
+    $seen{ $view->source_name } = 1;
+    for my $dep ( keys %{ $view->{deploy_depends_on} } ) {
+        if ( $seen->{$dep} ) {
+            return {};
+        }
+        my ($new_source_name) =
+          grep { $view->schema->source($_)->source_name eq $dep }
+          @{ [ $view->schema->sources ] };
+        my $subdeps =
+          _resolve_view_deps( $view->schema->source($new_source_name),
+            $monikers, \%seen, );
+        $ret->{$_} += $subdeps->{$_} for ( keys %$subdeps );
+
+        ++$ret->{$dep};
+    }
+    return $ret;
 }
 
 1;
