@@ -1,0 +1,73 @@
+=pod
+
+=head1 NAME
+
+DBIx::Class::Manual::Contributing - How to get involved in DBIx::Class
+
+=head1 CONTRIBUTORS
+
+=head2 Submitting simple documentation patches
+
+# make sure your name and email is set
+# HACK HACK HACK
+git commit -m 'foo'
+git format-patch origin/master
+# nopaste patches
+
+=head2 Bigger features
+
+# make a fork on github or gitorious or whatever and branch off of master
+
+# HACK HACK HACK
+git commit -m 'foo'
+
+git rebase --root --onto sc/master
+# get rid of useless commits and take out warns, commented out code, fixup commit messages, etc
+git rebase --root --onto sc/master -i
+git push gh
+# pull request
+
+
+=head1 MAINTAINERS
+
+=head2 Simple documentation patches
+
+# download patch
+git am patchfile
+# do the following if the user didn't
+git --amend -m $revised_commit_mesg --author 'Firstname Lastname <email>'
+
+=head2 Bigger features
+
+git co master
+git co -b remote-thingy
+git pull git://github.com/frew/DBIx-Class.git branch
+git log -p
+# rebase to clean up history if need be
+git co master
+git merge remote-thingy
+
+=head2 Releases
+
+ensure Changes is up to date
+set Changes version and timestamp
+bump version in DBIx/Class.pm
+git add lib/DBIx/Class.pm Changes
+git ci -m 'release $version'
+git tag v$version -m '$version tag'
+perl Makefile.PL
+make manifest
+make disttest
+make dist
+make upload
+bump version in DBIx/Class.pm to include _01 for master users
+
+=head2 Syncronize with other mirrors
+
+git clone git://git.shadowcat.co.uk/dbsrgits/DBIx-Class.git --mirror
+cd DBIx-Class.git
+git remote add github git@github.com:dbix-class/DBIx-Class.git
+
+git fetch --force --tags origin
+git fetch --force origin
+git push --all github
