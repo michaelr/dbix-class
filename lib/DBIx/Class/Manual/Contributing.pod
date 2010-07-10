@@ -8,11 +8,21 @@ DBIx::Class::Manual::Contributing - How to get involved in DBIx::Class
 
 =head2 Submitting simple documentation patches
 
+=head3 For the CLI people
+
 # make sure your name and email is set
 # HACK HACK HACK
 git commit -m 'foo'
 git format-patch origin/master
 # nopaste patches
+
+=head3 For point-click people
+
+Get a github account
+make a fork of http://github.com/dbix-class/DBIx-Class
+in your fork, go to the file, and click edit at the top right of the file viewer
+Commit your changes with the button at the bottom
+Paste a link in IRC or do a pull request (preferably the former)
 
 =head2 Bigger features
 
@@ -68,6 +78,6 @@ git clone git://git.shadowcat.co.uk/dbsrgits/DBIx-Class.git --mirror
 cd DBIx-Class.git
 git remote add github git@github.com:dbix-class/DBIx-Class.git
 
-git fetch --force --tags origin
-git fetch --force origin
+git fetch --tags --prune origin
+git fetch --prune origin
 git push --all github
