@@ -120,4 +120,9 @@ sub relationship_info {
 sub has_relationship {
   shift->result_source_instance->has_relationship(@_);
 }
+
+sub inject_resultset_components {
+  $_[0]->result_source_instance->inject_resultset_components(@_)
+}
+
 1;
