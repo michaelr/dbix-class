@@ -1,6 +1,14 @@
 package # hide from PAUSE 
     DBICTest::Schema::Track;
 
+my $small_datetime_type = 'datetime';
+if(
+    $ENV{DBICTEST_MSSQL_DSN}
+    || $ENV{DBICTEST_SYBASE_DSN}
+) {
+    $small_datetime_type = 'smalldatetime';
+}
+
 use base qw/DBICTest::BaseResult/;
 __PACKAGE__->load_components(qw/InflateColumn::DateTime Ordered/);
 
@@ -31,7 +39,7 @@ __PACKAGE__->add_columns(
     is_nullable => 1
   },
   small_dt => { # for mssql and sybase DT tests
-    data_type => 'smalldatetime',
+    data_type => $small_datetime_type,
     is_nullable => 1
   },
 );
