@@ -115,6 +115,8 @@ is($link7->id, 7, 'Link 7 id');
 is($link7->url, undef, 'Link 7 url');
 is($link7->title, 'gtitle', 'Link 7 title');
 
+my $aum_rs = $schema->resultset('ArtistUndirectedMap');
+$aum_rs->delete;
 my $rs = $schema->resultset('Artist');
 $rs->delete;
 
