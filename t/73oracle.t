@@ -51,8 +51,8 @@ DBICTest::Schema->load_classes('ArtistFQN');
 
 my $on_connect_sql = ["ALTER SESSION SET recyclebin = OFF"];
 my @tryopt = (
-	{ on_connect_do => $on_connect_sql },
-	{ quote_char => '"', name_sep   => '.', on_connect_do => $on_connect_sql, },
+  { on_connect_do => $on_connect_sql },
+  { quote_char => '"', name_sep   => '.', on_connect_do => $on_connect_sql, },
 );
 
 my @schema; # keeps track of all schema for cleanup in END block
@@ -69,7 +69,7 @@ do_creates($schema);
     # Swiped from t/bindtype_columns.t to avoid creating my own Resultset.
 
     local $SIG{__WARN__} = sub {};
-		my $q = $schema -> storage -> sql_maker -> quote_char || "";
+    my $q = $schema -> storage -> sql_maker -> quote_char || "";
     eval { $dbh->do('DROP TABLE bindtype_test') };
 
     $dbh->do(qq[
@@ -88,6 +88,7 @@ $schema->class('Artist')->load_components('PK::Auto');
 # These are compat shims for PK::Auto...
 $schema->class('CD')->load_components('PK::Auto::Oracle');
 $schema->class('Track')->load_components('PK::Auto::Oracle');
+
 
 # test primary key handling
 my $new = $schema->resultset('Artist')->create({ name => 'foo' });
@@ -681,7 +682,7 @@ SKIP: {
     1) unless $dsn2 && $user2 && $user2 ne $user;
 
   $schema2 = DBICTest::Schema->connect($dsn2, $user2, $pass2, $opt);
-	push @schema, $schema2;
+  push @schema, $schema2;
 
   my $schema1_dbh  = $schema->storage->dbh;
 
@@ -725,7 +726,7 @@ SKIP: {
   is $rs->result_source->column_info('artistid')->{sequence},
     qq[${schema_name}."ARTIST_SEQ"],
     'quoted sequence name correctly extracted';
-	do_clean ($schema2);
+  do_clean ($schema2);
 }
 do_clean ($schema);
 undef $schema;
@@ -734,11 +735,11 @@ undef $schema;
 done_testing;
 
 sub do_creates {
-	my $schema = shift;
+  my $schema = shift;
   my $dbh = $schema -> storage -> dbh;
-	my $q = $schema -> storage -> sql_maker -> quote_char || "";
+  my $q = $schema -> storage -> sql_maker -> quote_char || "";
 
-	do_clean($schema);
+  do_clean($schema);
   $dbh->do("CREATE SEQUENCE ${q}artist_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
   $dbh->do("CREATE SEQUENCE ${q}cd_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
   $dbh->do("CREATE SEQUENCE ${q}track_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
@@ -759,7 +760,7 @@ sub do_creates {
   $dbh->do("ALTER TABLE ${q}track${q} ADD (CONSTRAINT ${q}track_pk${q} PRIMARY KEY (${q}trackid${q}))");
 
   $dbh->do(qq{
-    CREATE OR REPLACE TRIGGER artist_insert_trg
+    CREATE OR REPLACE TRIGGER ${q}artist_insert_trg${q}
     BEFORE INSERT ON ${q}artist${q}
     FOR EACH ROW
     BEGIN
@@ -771,7 +772,7 @@ sub do_creates {
     END;
   });
   $dbh->do(qq{
-    CREATE OR REPLACE TRIGGER cd_insert_trg
+    CREATE OR REPLACE TRIGGER ${q}cd_insert_trg${q}
     BEFORE INSERT OR UPDATE ON ${q}CD${q}
     FOR EACH ROW
     BEGIN
@@ -783,7 +784,7 @@ sub do_creates {
     END;
   });
   $dbh->do(qq{
-    CREATE OR REPLACE TRIGGER cd_insert_trg
+    CREATE OR REPLACE TRIGGER ${q}cd_insert_trg${q}
     BEFORE INSERT ON ${q}CD${q}
     FOR EACH ROW
     BEGIN
@@ -795,7 +796,7 @@ sub do_creates {
     END;
   });
   $dbh->do(qq{
-    CREATE OR REPLACE TRIGGER track_insert_trg
+    CREATE OR REPLACE TRIGGER ${q}track_insert_trg${q}
     BEFORE INSERT ON ${q}track${q}
     FOR EACH ROW
     BEGIN
@@ -812,12 +813,12 @@ sub do_creates {
 sub do_clean {
   for my $schema (@_) {
     my $dbh = $schema -> storage -> dbh;
-		my $q = $schema -> storage -> sql_maker -> quote_char || "";
-		my @clean = (
-			"DROP TRIGGER artist_insert_trg",
-			"DROP TRIGGER cd_insert_trg",
-			"DROP TRIGGER cd_insert_trg",
-			"DROP TRIGGER track_insert_trg",
+    my $q = $schema -> storage -> sql_maker -> quote_char || "";
+    my @clean = (
+      "DROP TRIGGER ${q}artist_insert_trg${q}",
+      "DROP TRIGGER ${q}cd_insert_trg${q}",
+      "DROP TRIGGER ${q}cd_insert_trg${q}",
+      "DROP TRIGGER ${q}track_insert_trg${q}",
       "DROP SEQUENCE ${q}artist_seq${q}",
       "DROP SEQUENCE ${q}cd_seq${q}",
       "DROP SEQUENCE ${q}track_seq${q}",
@@ -830,7 +831,7 @@ sub do_clean {
       "DROP TABLE ${q}CD${q}",
       "DROP TABLE ${q}bindtype_test${q}",
     );
-		eval { $dbh -> do ($_) } for @clean;
+    eval { $dbh -> do ($_) } for @clean;
   }
 }
 
