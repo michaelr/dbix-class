@@ -46,11 +46,24 @@ plan skip_all => 'Set $ENV{DBICTEST_ORA_DSN}, _USER and _PASS to run this test. 
   unless ($dsn && $user && $pass);
 
 DBICTest::Schema->load_classes('ArtistFQN');
-my $schema = DBICTest::Schema->connect($dsn, $user, $pass);
+
+# run all tests twice once with, once without quotes
+
+my @tryopt = (
+	{},
+  #{ quote_char => '"', name_sep   => '.', },
+);
+
+my @schema;
+
+for my $opt (@tryopt) {
+
+my $schema = DBICTest::Schema->connect($dsn, $user, $pass, $opt, );
+push @schema, $schema;
 
 my $dbh = $schema->storage->dbh;
 
-do_creates($dbh);
+do_creates($dbh, $opt->{quote_char});
 
 {
     # Swiped from t/bindtype_columns.t to avoid creating my own Resultset.
@@ -666,7 +679,8 @@ SKIP: {
 ' to run the cross-schema autoincrement test.'),
     1) unless $dsn2 && $user2 && $user2 ne $user;
 
-  $schema2 = DBICTest::Schema->connect($dsn2, $user2, $pass2);
+  $schema2 = DBICTest::Schema->connect($dsn2, $user2, $pass2, $opt);
+  push @schema, $schema2;
 
   my $schema1_dbh  = $schema->storage->dbh;
 
@@ -711,87 +725,89 @@ SKIP: {
     qq[${schema_name}."ARTIST_SEQ"],
     'quoted sequence name correctly extracted';
 }
+}
 
 done_testing;
 
 sub do_creates {
   my $dbh = shift;
+	my $q = shift || "";
 
   eval {
-    $dbh->do("DROP SEQUENCE artist_seq");
-    $dbh->do("DROP SEQUENCE cd_seq");
-    $dbh->do("DROP SEQUENCE track_seq");
-    $dbh->do("DROP SEQUENCE pkid1_seq");
-    $dbh->do("DROP SEQUENCE pkid2_seq");
-    $dbh->do("DROP SEQUENCE nonpkid_seq");
-    $dbh->do("DROP TABLE artist");
-    $dbh->do("DROP TABLE sequence_test");
-    $dbh->do("DROP TABLE track");
-    $dbh->do("DROP TABLE cd");
+    $dbh->do("DROP SEQUENCE ${q}artist_seq${q}");
+    $dbh->do("DROP SEQUENCE ${q}cd_seq${q}");
+    $dbh->do("DROP SEQUENCE ${q}track_seq${q}");
+    $dbh->do("DROP SEQUENCE ${q}pkid1_seq${q}");
+    $dbh->do("DROP SEQUENCE ${q}pkid2_seq${q}");
+    $dbh->do("DROP SEQUENCE ${q}nonpkid_seq${q}");
+    $dbh->do("DROP TABLE ${q}artist${q}");
+    $dbh->do("DROP TABLE ${q}sequence_test${q}");
+    $dbh->do("DROP TABLE ${q}track${q}");
+    $dbh->do("DROP TABLE ${q}CD${q}");
   };
-  $dbh->do("CREATE SEQUENCE artist_seq START WITH 1 MAXVALUE 999999 MINVALUE 0");
-  $dbh->do("CREATE SEQUENCE cd_seq START WITH 1 MAXVALUE 999999 MINVALUE 0");
-  $dbh->do("CREATE SEQUENCE track_seq START WITH 1 MAXVALUE 999999 MINVALUE 0");
-  $dbh->do("CREATE SEQUENCE pkid1_seq START WITH 1 MAXVALUE 999999 MINVALUE 0");
-  $dbh->do("CREATE SEQUENCE pkid2_seq START WITH 10 MAXVALUE 999999 MINVALUE 0");
-  $dbh->do("CREATE SEQUENCE nonpkid_seq START WITH 20 MAXVALUE 999999 MINVALUE 0");
+  $dbh->do("CREATE SEQUENCE ${q}artist_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
+  $dbh->do("CREATE SEQUENCE ${q}cd_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
+  $dbh->do("CREATE SEQUENCE ${q}track_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
+  $dbh->do("CREATE SEQUENCE ${q}pkid1_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
+  $dbh->do("CREATE SEQUENCE ${q}pkid2_seq${q} START WITH 10 MAXVALUE 999999 MINVALUE 0");
+  $dbh->do("CREATE SEQUENCE ${q}nonpkid_seq${q} START WITH 20 MAXVALUE 999999 MINVALUE 0");
 
-  $dbh->do("CREATE TABLE artist (artistid NUMBER(12), parentid NUMBER(12), name VARCHAR(255), rank NUMBER(38), charfield VARCHAR2(10))");
-  $dbh->do("ALTER TABLE artist ADD (CONSTRAINT artist_pk PRIMARY KEY (artistid))");
+  $dbh->do("CREATE TABLE ${q}artist${q} (${q}artistid${q} NUMBER(12), ${q}parentid${q} NUMBER(12), ${q}name${q} VARCHAR(255), ${q}rank${q} NUMBER(38), ${q}charfield${q} VARCHAR2(10))");
+  $dbh->do("ALTER TABLE ${q}artist${q} ADD (CONSTRAINT ${q}artist_pk${q} PRIMARY KEY (${q}artistid${q}))");
 
-  $dbh->do("CREATE TABLE sequence_test (pkid1 NUMBER(12), pkid2 NUMBER(12), nonpkid NUMBER(12), name VARCHAR(255))");
-  $dbh->do("ALTER TABLE sequence_test ADD (CONSTRAINT sequence_test_constraint PRIMARY KEY (pkid1, pkid2))");
+  $dbh->do("CREATE TABLE ${q}sequence_test${q} (${q}pkid1${q} NUMBER(12), ${q}pkid2${q} NUMBER(12), ${q}nonpkid${q} NUMBER(12), ${q}name${q} VARCHAR(255))");
+  $dbh->do("ALTER TABLE ${q}sequence_test${q} ADD (CONSTRAINT ${q}sequence_test_constraint${q} PRIMARY KEY (${q}pkid1${q}, ${q}pkid2${q}))");
 
-  $dbh->do("CREATE TABLE cd (cdid NUMBER(12), artist NUMBER(12), title VARCHAR(255), year VARCHAR(4), genreid NUMBER(12), single_track NUMBER(12))");
-  $dbh->do("ALTER TABLE cd ADD (CONSTRAINT cd_pk PRIMARY KEY (cdid))");
+  $dbh->do("CREATE TABLE ${q}CD${q} (${q}cdid${q} NUMBER(12), ${q}artist${q} NUMBER(12), ${q}title${q} VARCHAR(255), ${q}year${q} VARCHAR(4), ${q}genreid${q} NUMBER(12), ${q}single_track${q} NUMBER(12))");
+  $dbh->do("ALTER TABLE ${q}CD${q} ADD (CONSTRAINT ${q}cd_pk${q} PRIMARY KEY (${q}cdid${q}))");
 
-  $dbh->do("CREATE TABLE track (trackid NUMBER(12), cd NUMBER(12) REFERENCES cd(cdid) DEFERRABLE, position NUMBER(12), title VARCHAR(255), last_updated_on DATE, last_updated_at DATE, small_dt DATE)");
-  $dbh->do("ALTER TABLE track ADD (CONSTRAINT track_pk PRIMARY KEY (trackid))");
+  $dbh->do("CREATE TABLE ${q}track${q} (${q}trackid${q} NUMBER(12), ${q}cd${q} NUMBER(12) REFERENCES ${q}CD${q}(${q}cdid${q}) DEFERRABLE, ${q}position${q} NUMBER(12), ${q}title${q} VARCHAR(255), ${q}last_updated_on${q} DATE, ${q}last_updated_at${q} DATE, ${q}small_dt${q} DATE)");
+  $dbh->do("ALTER TABLE ${q}track${q} ADD (CONSTRAINT ${q}track_pk${q} PRIMARY KEY (${q}trackid${q}))");
 
   $dbh->do(qq{
-    CREATE OR REPLACE TRIGGER artist_insert_trg
-    BEFORE INSERT ON artist
+    CREATE OR REPLACE TRIGGER ${q}artist_insert_trg${q}
+    BEFORE INSERT ON ${q}artist${q}
     FOR EACH ROW
     BEGIN
-      IF :new.artistid IS NULL THEN
-        SELECT artist_seq.nextval
-        INTO :new.artistid
+      IF :new.${q}artistid${q} IS NULL THEN
+        SELECT ${q}artist_seq${q}.nextval
+        INTO :new.${q}artistid${q}
         FROM DUAL;
       END IF;
     END;
   });
   $dbh->do(qq{
-    CREATE OR REPLACE TRIGGER cd_insert_trg
-    BEFORE INSERT OR UPDATE ON cd
+    CREATE OR REPLACE TRIGGER ${q}cd_insert_trg${q}
+    BEFORE INSERT OR UPDATE ON ${q}CD${q}
     FOR EACH ROW
     BEGIN
-      IF :new.cdid IS NULL THEN
-        SELECT cd_seq.nextval
-        INTO :new.cdid
+      IF :new.${q}cdid${q} IS NULL THEN
+        SELECT ${q}cd_seq${q}.nextval
+        INTO :new.${q}cdid${q}
         FROM DUAL;
       END IF;
     END;
   });
   $dbh->do(qq{
-    CREATE OR REPLACE TRIGGER cd_insert_trg
-    BEFORE INSERT ON cd
+    CREATE OR REPLACE TRIGGER ${q}cd_insert_trg${q}
+    BEFORE INSERT ON ${q}CD${q}
     FOR EACH ROW
     BEGIN
-      IF :new.cdid IS NULL THEN
-        SELECT cd_seq.nextval
-        INTO :new.cdid
+      IF :new.${q}cdid${q} IS NULL THEN
+        SELECT ${q}cd_seq${q}.nextval
+        INTO :new.${q}cdid${q}
         FROM DUAL;
       END IF;
     END;
   });
   $dbh->do(qq{
-    CREATE OR REPLACE TRIGGER track_insert_trg
-    BEFORE INSERT ON track
+    CREATE OR REPLACE TRIGGER ${q}track_insert_trg${q}
+    BEFORE INSERT ON ${q}track${q}
     FOR EACH ROW
     BEGIN
-      IF :new.trackid IS NULL THEN
-        SELECT track_seq.nextval
-        INTO :new.trackid
+      IF :new.${q}trackid${q} IS NULL THEN
+        SELECT ${q}track_seq${q}.nextval
+        INTO :new.${q}trackid${q}
         FROM DUAL;
       END IF;
     END;
@@ -800,19 +816,23 @@ sub do_creates {
 
 # clean up our mess
 END {
-  for my $dbh (map $_->storage->dbh, grep $_, ($schema, $schema2)) {
+  #for my $dbh (map $_->storage->dbh, grep $_, @schema) {
+  for my $schema (@schema) {
+    my $dbh = $schema -> storage -> dbh;
+		my $q = $schema -> storage -> sql_maker -> quote_char || "";
     eval {
-      $dbh->do("DROP SEQUENCE artist_seq");
-      $dbh->do("DROP SEQUENCE cd_seq");
-      $dbh->do("DROP SEQUENCE track_seq");
-      $dbh->do("DROP SEQUENCE pkid1_seq");
-      $dbh->do("DROP SEQUENCE pkid2_seq");
-      $dbh->do("DROP SEQUENCE nonpkid_seq");
-      $dbh->do("DROP TABLE artist");
-      $dbh->do("DROP TABLE sequence_test");
-      $dbh->do("DROP TABLE track");
-      $dbh->do("DROP TABLE cd");
+      $dbh->do("DROP SEQUENCE ${q}artist_seq${q}");
+      $dbh->do("DROP SEQUENCE ${q}cd_seq${q}");
+      $dbh->do("DROP SEQUENCE ${q}track_seq${q}");
+      $dbh->do("DROP SEQUENCE ${q}pkid1_seq${q}");
+      $dbh->do("DROP SEQUENCE ${q}pkid2_seq${q}");
+      $dbh->do("DROP SEQUENCE ${q}nonpkid_seq${q}");
+      $dbh->do("DROP TABLE ${q}artist${q}");
+      $dbh->do("DROP TABLE ${q}sequence_test${q}");
+      $dbh->do("DROP TABLE ${q}track${q}");
+      $dbh->do("DROP TABLE ${q}CD${q}");
       $dbh->do("DROP TABLE bindtype_test");
     };
   }
 }
+
