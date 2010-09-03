@@ -49,13 +49,13 @@ DBICTest::Schema->load_classes('ArtistFQN');
 
 # run all tests twice once with, once without quotes
 
+my $on_connect_sql = ["ALTER SESSION SET recyclebin = OFF"];
 my @tryopt = (
-	{},
-  #{ quote_char => '"', name_sep   => '.', },
+	{ on_connect_do => $on_connect_sql },
+	{ quote_char => '"', name_sep   => '.', on_connect_do => $on_connect_sql, },
 );
 
-my @schema;
-
+my @schema; # keeps track of all schema for cleanup in END block
 for my $opt (@tryopt) {
 
 my $schema = DBICTest::Schema->connect($dsn, $user, $pass, $opt, );
@@ -63,21 +63,22 @@ push @schema, $schema;
 
 my $dbh = $schema->storage->dbh;
 
-do_creates($dbh, $opt->{quote_char});
+do_creates($schema);
 
 {
     # Swiped from t/bindtype_columns.t to avoid creating my own Resultset.
 
     local $SIG{__WARN__} = sub {};
+		my $q = $schema -> storage -> sql_maker -> quote_char || "";
     eval { $dbh->do('DROP TABLE bindtype_test') };
 
     $dbh->do(qq[
-        CREATE TABLE bindtype_test
+        CREATE TABLE ${q}bindtype_test${q}
         (
-            id              integer      NOT NULL   PRIMARY KEY,
-            bytea           integer      NULL,
-            blob            blob         NULL,
-            clob            clob         NULL
+            ${q}id${q}              integer      NOT NULL   PRIMARY KEY,
+            ${q}bytea${q}           integer      NULL,
+            ${q}blob${q}            blob         NULL,
+            ${q}clob${q}            clob         NULL
         )
     ],{ RaiseError => 1, PrintError => 1 });
 }
@@ -680,7 +681,7 @@ SKIP: {
     1) unless $dsn2 && $user2 && $user2 ne $user;
 
   $schema2 = DBICTest::Schema->connect($dsn2, $user2, $pass2, $opt);
-  push @schema, $schema2;
+	push @schema, $schema2;
 
   my $schema1_dbh  = $schema->storage->dbh;
 
@@ -724,27 +725,20 @@ SKIP: {
   is $rs->result_source->column_info('artistid')->{sequence},
     qq[${schema_name}."ARTIST_SEQ"],
     'quoted sequence name correctly extracted';
+	do_clean ($schema2);
 }
+do_clean ($schema);
+undef $schema;
 }
 
 done_testing;
 
 sub do_creates {
-  my $dbh = shift;
-	my $q = shift || "";
+	my $schema = shift;
+  my $dbh = $schema -> storage -> dbh;
+	my $q = $schema -> storage -> sql_maker -> quote_char || "";
 
-  eval {
-    $dbh->do("DROP SEQUENCE ${q}artist_seq${q}");
-    $dbh->do("DROP SEQUENCE ${q}cd_seq${q}");
-    $dbh->do("DROP SEQUENCE ${q}track_seq${q}");
-    $dbh->do("DROP SEQUENCE ${q}pkid1_seq${q}");
-    $dbh->do("DROP SEQUENCE ${q}pkid2_seq${q}");
-    $dbh->do("DROP SEQUENCE ${q}nonpkid_seq${q}");
-    $dbh->do("DROP TABLE ${q}artist${q}");
-    $dbh->do("DROP TABLE ${q}sequence_test${q}");
-    $dbh->do("DROP TABLE ${q}track${q}");
-    $dbh->do("DROP TABLE ${q}CD${q}");
-  };
+	do_clean($schema);
   $dbh->do("CREATE SEQUENCE ${q}artist_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
   $dbh->do("CREATE SEQUENCE ${q}cd_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
   $dbh->do("CREATE SEQUENCE ${q}track_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
@@ -765,7 +759,7 @@ sub do_creates {
   $dbh->do("ALTER TABLE ${q}track${q} ADD (CONSTRAINT ${q}track_pk${q} PRIMARY KEY (${q}trackid${q}))");
 
   $dbh->do(qq{
-    CREATE OR REPLACE TRIGGER ${q}artist_insert_trg${q}
+    CREATE OR REPLACE TRIGGER artist_insert_trg
     BEFORE INSERT ON ${q}artist${q}
     FOR EACH ROW
     BEGIN
@@ -777,7 +771,7 @@ sub do_creates {
     END;
   });
   $dbh->do(qq{
-    CREATE OR REPLACE TRIGGER ${q}cd_insert_trg${q}
+    CREATE OR REPLACE TRIGGER cd_insert_trg
     BEFORE INSERT OR UPDATE ON ${q}CD${q}
     FOR EACH ROW
     BEGIN
@@ -789,7 +783,7 @@ sub do_creates {
     END;
   });
   $dbh->do(qq{
-    CREATE OR REPLACE TRIGGER ${q}cd_insert_trg${q}
+    CREATE OR REPLACE TRIGGER cd_insert_trg
     BEFORE INSERT ON ${q}CD${q}
     FOR EACH ROW
     BEGIN
@@ -801,7 +795,7 @@ sub do_creates {
     END;
   });
   $dbh->do(qq{
-    CREATE OR REPLACE TRIGGER ${q}track_insert_trg${q}
+    CREATE OR REPLACE TRIGGER track_insert_trg
     BEFORE INSERT ON ${q}track${q}
     FOR EACH ROW
     BEGIN
@@ -815,24 +809,30 @@ sub do_creates {
 }
 
 # clean up our mess
-END {
-  #for my $dbh (map $_->storage->dbh, grep $_, @schema) {
-  for my $schema (@schema) {
+sub do_clean {
+  for my $schema (@_) {
     my $dbh = $schema -> storage -> dbh;
 		my $q = $schema -> storage -> sql_maker -> quote_char || "";
-    eval {
-      $dbh->do("DROP SEQUENCE ${q}artist_seq${q}");
-      $dbh->do("DROP SEQUENCE ${q}cd_seq${q}");
-      $dbh->do("DROP SEQUENCE ${q}track_seq${q}");
-      $dbh->do("DROP SEQUENCE ${q}pkid1_seq${q}");
-      $dbh->do("DROP SEQUENCE ${q}pkid2_seq${q}");
-      $dbh->do("DROP SEQUENCE ${q}nonpkid_seq${q}");
-      $dbh->do("DROP TABLE ${q}artist${q}");
-      $dbh->do("DROP TABLE ${q}sequence_test${q}");
-      $dbh->do("DROP TABLE ${q}track${q}");
-      $dbh->do("DROP TABLE ${q}CD${q}");
-      $dbh->do("DROP TABLE bindtype_test");
-    };
+		my @clean = (
+			"DROP TRIGGER artist_insert_trg",
+			"DROP TRIGGER cd_insert_trg",
+			"DROP TRIGGER cd_insert_trg",
+			"DROP TRIGGER track_insert_trg",
+      "DROP SEQUENCE ${q}artist_seq${q}",
+      "DROP SEQUENCE ${q}cd_seq${q}",
+      "DROP SEQUENCE ${q}track_seq${q}",
+      "DROP SEQUENCE ${q}pkid1_seq${q}",
+      "DROP SEQUENCE ${q}pkid2_seq${q}",
+      "DROP SEQUENCE ${q}nonpkid_seq${q}",
+      "DROP TABLE ${q}artist${q}",
+      "DROP TABLE ${q}sequence_test${q}",
+      "DROP TABLE ${q}track${q}",
+      "DROP TABLE ${q}CD${q}",
+      "DROP TABLE ${q}bindtype_test${q}",
+    );
+		eval { $dbh -> do ($_) } for @clean;
   }
 }
+
+END { do_clean(@schema) }
 
