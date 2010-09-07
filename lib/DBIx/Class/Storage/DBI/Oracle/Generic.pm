@@ -104,8 +104,16 @@ sub deployment_statements {
 sub _dbh_last_insert_id {
   my ($self, $dbh, $source, @columns) = @_;
   my @ids = ();
+  my $quote_char = $self->schema->storage->sql_maker->quote_char || "";
   foreach my $col (@columns) {
-    my $seq = ($source->column_info($col)->{sequence} ||= $self->get_autoinc_seq($source,$col));
+    my $seq;
+    my $seq_from_schema = $source->column_info($col)->{sequence};
+    if ($seq_from_schema) {
+      die "seq_from_schema";
+      $seq = "${quote_char}${seq_from_schema}${quote_char}";
+    } else {
+      $seq = $self->get_autoinc_seq($source,$col);
+    }
     my $id = $self->_sequence_fetch( 'currval', $seq );
     push @ids, $id;
   }
@@ -163,7 +171,16 @@ sub _dbh_get_autoinc_seq {
 
 sub _sequence_fetch {
   my ( $self, $type, $seq ) = @_;
-  my ($id) = $self->_get_dbh->selectrow_array("SELECT ${seq}.${type} FROM DUAL");
+  my $name_sep = $self->schema->storage->sql_maker->name_sep || ".";
+  my $quote_char = $self->schema->storage->sql_maker->quote_char || "";
+  if ($quote_char) {
+    unless ($seq =~ /\./) {
+      unless ($seq =~ /^$quote_char/) {
+        $seq = "$quote_char$seq$quote_char";
+      }
+    }
+  }
+  my ($id) = $self->_get_dbh->selectrow_array("SELECT ${seq}${name_sep}${type} FROM DUAL");
   return $id;
 }
 

@@ -56,7 +56,8 @@ my @tryopt = (
 );
 
 my @schema; # keeps track of all schema for cleanup in END block
-for my $opt (@tryopt) {
+my $i=0;
+OPT: for my $opt (@tryopt) {
 
 my $schema = DBICTest::Schema->connect($dsn, $user, $pass, $opt, );
 push @schema, $schema;
@@ -252,6 +253,7 @@ SKIP: {
 
     skip 'buggy BLOB support in DBD::Oracle 1.23', 7;
   }
+  last OPT if $i>0; # skip when quoting is on
 
   # disable BLOB mega-output
   my $orig_debug = $schema->storage->debug;
@@ -729,7 +731,7 @@ SKIP: {
   do_clean ($schema2);
 }
 do_clean ($schema);
-undef $schema;
+$i++;
 }
 
 done_testing;
