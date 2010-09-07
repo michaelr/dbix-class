@@ -59,14 +59,14 @@ my @schema; # keeps track of all schema for cleanup in END block
 my $i=0;
 OPT: for my $opt (@tryopt) {
 
-my $schema = DBICTest::Schema->connect($dsn, $user, $pass, $opt, );
-push @schema, $schema;
+  my $schema = DBICTest::Schema->connect($dsn, $user, $pass, $opt, );
+  push @schema, $schema;
 
-my $dbh = $schema->storage->dbh;
+  my $dbh = $schema->storage->dbh;
 
-do_creates($schema);
+  do_creates($schema);
 
-{
+  {
     # Swiped from t/bindtype_columns.t to avoid creating my own Resultset.
 
     local $SIG{__WARN__} = sub {};
@@ -82,200 +82,198 @@ do_creates($schema);
             ${q}clob${q}            clob         NULL
         )
     ],{ RaiseError => 1, PrintError => 1 });
-}
+  }
 
-# This is in Core now, but it's here just to test that it doesn't break
-$schema->class('Artist')->load_components('PK::Auto');
-# These are compat shims for PK::Auto...
-$schema->class('CD')->load_components('PK::Auto::Oracle');
-$schema->class('Track')->load_components('PK::Auto::Oracle');
+  # This is in Core now, but it's here just to test that it doesn't break
+  $schema->class('Artist')->load_components('PK::Auto');
+  # These are compat shims for PK::Auto...
+  $schema->class('CD')->load_components('PK::Auto::Oracle');
+  $schema->class('Track')->load_components('PK::Auto::Oracle');
 
 
-# test primary key handling
-my $new = $schema->resultset('Artist')->create({ name => 'foo' });
-is($new->artistid, 1, "Oracle Auto-PK worked");
+  # test primary key handling
+  my $new = $schema->resultset('Artist')->create({ name => 'foo' });
+  is($new->artistid, 1, "Oracle Auto-PK worked");
 
-my $cd = $schema->resultset('CD')->create({ artist => 1, title => 'EP C', year => '2003' });
-is($cd->cdid, 1, "Oracle Auto-PK worked - using scalar ref as table name");
+  my $cd = $schema->resultset('CD')->create({ artist => 1, title => 'EP C', year => '2003' });
+  is($cd->cdid, 1, "Oracle Auto-PK worked - using scalar ref as table name");
 
-# test again with fully-qualified table name
-$new = $schema->resultset('ArtistFQN')->create( { name => 'bar' } );
-is( $new->artistid, 2, "Oracle Auto-PK worked with fully-qualified tablename" );
+  # test again with fully-qualified table name
+  $new = $schema->resultset('ArtistFQN')->create( { name => 'bar' } );
+  is( $new->artistid, 2, "Oracle Auto-PK worked with fully-qualified tablename" );
 
-# test rel names over the 30 char limit
-my $query = $schema->resultset('Artist')->search({
-  artistid => 1 
-}, {
-  prefetch => 'cds_very_very_very_long_relationship_name'
-});
-
-lives_and {
-  is $query->first->cds_very_very_very_long_relationship_name->first->cdid, 1
-} 'query with rel name over 30 chars survived and worked';
-
-# rel name over 30 char limit with user condition
-# This requires walking the SQLA data structure.
-{
-  local $TODO = 'user condition on rel longer than 30 chars';
-
-  $query = $schema->resultset('Artist')->search({
-    'cds_very_very_very_long_relationship_name.title' => 'EP C'
+  # test rel names over the 30 char limit
+  my $query = $schema->resultset('Artist')->search({
+    artistid => 1 
   }, {
     prefetch => 'cds_very_very_very_long_relationship_name'
   });
 
   lives_and {
     is $query->first->cds_very_very_very_long_relationship_name->first->cdid, 1
-  } 'query with rel name over 30 chars and user condition survived and worked';
-}
+  } 'query with rel name over 30 chars survived and worked';
 
-# test join with row count ambiguity
+  # rel name over 30 char limit with user condition
+  # This requires walking the SQLA data structure.
+  {
+    local $TODO = 'user condition on rel longer than 30 chars';
 
-my $track = $schema->resultset('Track')->create({ cd => $cd->cdid,
-    position => 1, title => 'Track1' });
-my $tjoin = $schema->resultset('Track')->search({ 'me.title' => 'Track1'},
+    $query = $schema->resultset('Artist')->search({
+      'cds_very_very_very_long_relationship_name.title' => 'EP C'
+    }, {
+      prefetch => 'cds_very_very_very_long_relationship_name'
+    });
+
+    lives_and {
+      is $query->first->cds_very_very_very_long_relationship_name->first->cdid, 1
+    } 'query with rel name over 30 chars and user condition survived and worked';
+  }
+
+  # test join with row count ambiguity
+
+  my $track = $schema->resultset('Track')->create({ cd => $cd->cdid,
+      position => 1, title => 'Track1' });
+  my $tjoin = $schema->resultset('Track')->search({ 'me.title' => 'Track1'},
         { join => 'cd',
           rows => 2 }
-);
+  );
 
-ok(my $row = $tjoin->next);
+  ok(my $row = $tjoin->next);
 
-is($row->title, 'Track1', "ambiguous column ok");
+  is($row->title, 'Track1', "ambiguous column ok");
 
-# check count distinct with multiple columns
-my $other_track = $schema->resultset('Track')->create({ cd => $cd->cdid, position => 1, title => 'Track2' });
+  # check count distinct with multiple columns
+  my $other_track = $schema->resultset('Track')->create({ cd => $cd->cdid, position => 1, title => 'Track2' });
 
-my $tcount = $schema->resultset('Track')->search(
-  {},
-  {
-    select => [ qw/position title/ ],
-    distinct => 1,
-  }
-);
-is($tcount->count, 2, 'multiple column COUNT DISTINCT ok');
+  my $tcount = $schema->resultset('Track')->search(
+    {},
+    {
+      select => [ qw/position title/ ],
+      distinct => 1,
+    }
+  );
+  is($tcount->count, 2, 'multiple column COUNT DISTINCT ok');
 
-$tcount = $schema->resultset('Track')->search(
-  {},
-  {
-    columns => [ qw/position title/ ],
-    distinct => 1,
-  }
-);
-is($tcount->count, 2, 'multiple column COUNT DISTINCT ok');
+  $tcount = $schema->resultset('Track')->search(
+    {},
+    {
+      columns => [ qw/position title/ ],
+      distinct => 1,
+    }
+  );
+  is($tcount->count, 2, 'multiple column COUNT DISTINCT ok');
 
-$tcount = $schema->resultset('Track')->search(
-  {},
-  {
-     group_by => [ qw/position title/ ]
-  }
-);
-is($tcount->count, 2, 'multiple column COUNT DISTINCT using column syntax ok');
+  $tcount = $schema->resultset('Track')->search(
+    {},
+    {
+      group_by => [ qw/position title/ ]
+    }
+  );
+  is($tcount->count, 2, 'multiple column COUNT DISTINCT using column syntax ok');
 
-# test LIMIT support
-for (1..6) {
+  # test LIMIT support
+  for (1..6) {
     $schema->resultset('Artist')->create({ name => 'Artist ' . $_ });
-}
-my $it = $schema->resultset('Artist')->search( {},
+  }
+  my $it = $schema->resultset('Artist')->search( {},
     { rows => 3,
       offset => 3,
       order_by => 'artistid' }
-);
-is( $it->count, 3, "LIMIT count ok" );
-is( $it->next->name, "Artist 2", "iterator->next ok" );
-$it->next;
-$it->next;
-is( $it->next, undef, "next past end of resultset ok" );
+  );
+  is( $it->count, 3, "LIMIT count ok" );
+  is( $it->next->name, "Artist 2", "iterator->next ok" );
+  $it->next;
+  $it->next;
+  is( $it->next, undef, "next past end of resultset ok" );
 
-{
-  my $rs = $schema->resultset('Track')->search( undef, { columns=>[qw/trackid position/], group_by=> [ qw/trackid position/ ] , rows => 2, offset=>1 });
-  my @results = $rs->all;
-  is( scalar @results, 1, "Group by with limit OK" );
-}
+  {
+    my $rs = $schema->resultset('Track')->search( undef, { columns=>[qw/trackid position/], group_by=> [ qw/trackid position/ ] , rows => 2, offset=>1 });
+    my @results = $rs->all;
+    is( scalar @results, 1, "Group by with limit OK" );
+  }
 
 # test identifiers over the 30 char limit
-{
+  {
+    lives_ok {
+      my @results = $schema->resultset('CD')->search(undef, {
+        prefetch => 'very_long_artist_relationship',
+        rows => 3,
+        offset => 0,
+      })->all;
+      ok( scalar @results > 0, 'limit with long identifiers returned something');
+    } 'limit with long identifiers executed successfully';
+  }
+
+  # test with_deferred_fk_checks
   lives_ok {
-    my @results = $schema->resultset('CD')->search(undef, {
-      prefetch => 'very_long_artist_relationship',
-      rows => 3,
-      offset => 0,
-    })->all;
-    ok( scalar @results > 0, 'limit with long identifiers returned something');
-  } 'limit with long identifiers executed successfully';
-}
+    $schema->storage->with_deferred_fk_checks(sub {
+      $schema->resultset('Track')->create({
+        trackid => 999, cd => 999, position => 1, title => 'deferred FK track'
+      });
+      $schema->resultset('CD')->create({
+        artist => 1, cdid => 999, year => '2003', title => 'deferred FK cd'
+      });
+    });
+  } 'with_deferred_fk_checks code survived';
 
-# test with_deferred_fk_checks
-lives_ok {
-  $schema->storage->with_deferred_fk_checks(sub {
+  is eval { $schema->resultset('Track')->find(999)->title }, 'deferred FK track',
+    'code in with_deferred_fk_checks worked'; 
+
+  throws_ok {
     $schema->resultset('Track')->create({
-      trackid => 999, cd => 999, position => 1, title => 'deferred FK track'
+      trackid => 1, cd => 9999, position => 1, title => 'Track1'
     });
-    $schema->resultset('CD')->create({
-      artist => 1, cdid => 999, year => '2003', title => 'deferred FK cd'
-    });
-  });
-} 'with_deferred_fk_checks code survived';
+  } qr/constraint/i, 'with_deferred_fk_checks is off';
 
-is eval { $schema->resultset('Track')->find(999)->title }, 'deferred FK track',
-   'code in with_deferred_fk_checks worked'; 
-
-throws_ok {
-  $schema->resultset('Track')->create({
-    trackid => 1, cd => 9999, position => 1, title => 'Track1'
-  });
-} qr/constraint/i, 'with_deferred_fk_checks is off';
-
-# test auto increment using sequences WITHOUT triggers
-for (1..5) {
+  # test auto increment using sequences WITHOUT triggers
+  for (1..5) {
     my $st = $schema->resultset('SequenceTest')->create({ name => 'foo' });
     is($st->pkid1, $_, "Oracle Auto-PK without trigger: First primary key");
     is($st->pkid2, $_ + 9, "Oracle Auto-PK without trigger: Second primary key");
     is($st->nonpkid, $_ + 19, "Oracle Auto-PK without trigger: Non-primary key");
-}
-my $st = $schema->resultset('SequenceTest')->create({ name => 'foo', pkid1 => 55 });
-is($st->pkid1, 55, "Oracle Auto-PK without trigger: First primary key set manually");
-
-SKIP: {
-  my %binstr = ( 'small' => join('', map { chr($_) } ( 1 .. 127 )) );
-  $binstr{'large'} = $binstr{'small'} x 1024;
-
-  my $maxloblen = length $binstr{'large'};
-  note "Localizing LongReadLen to $maxloblen to avoid truncation of test data";
-  local $dbh->{'LongReadLen'} = $maxloblen;
-
-  my $rs = $schema->resultset('BindType');
-  my $id = 0;
-
-  if ($DBD::Oracle::VERSION eq '1.23') {
-    throws_ok { $rs->create({ id => 1, blob => $binstr{large} }) }
-      qr/broken/,
-      'throws on blob insert with DBD::Oracle == 1.23';
-
-    skip 'buggy BLOB support in DBD::Oracle 1.23', 7;
   }
-  last OPT if $i>0; # skip when quoting is on
+  my $st = $schema->resultset('SequenceTest')->create({ name => 'foo', pkid1 => 55 });
+  is($st->pkid1, 55, "Oracle Auto-PK without trigger: First primary key set manually");
+
+  SKIP: {
+    my %binstr = ( 'small' => join('', map { chr($_) } ( 1 .. 127 )) );
+    $binstr{'large'} = $binstr{'small'} x 1024;
+
+    my $maxloblen = length $binstr{'large'};
+    note "Localizing LongReadLen to $maxloblen to avoid truncation of test data";
+    local $dbh->{'LongReadLen'} = $maxloblen;
+
+    my $rs = $schema->resultset('BindType');
+    my $id = 0;
+
+    if ($DBD::Oracle::VERSION eq '1.23') {
+      throws_ok { $rs->create({ id => 1, blob => $binstr{large} }) }
+        qr/broken/,
+        'throws on blob insert with DBD::Oracle == 1.23';
+
+      skip 'buggy BLOB support in DBD::Oracle 1.23', 7;
+    }
+    last OPT if $i>0; # skip when quoting is on tests still need to be fixed
 
   # disable BLOB mega-output
   my $orig_debug = $schema->storage->debug;
   $schema->storage->debug (0);
 
-  foreach my $type (qw( blob clob )) {
-    foreach my $size (qw( small large )) {
-      $id++;
+    foreach my $type (qw( blob clob )) {
+      foreach my $size (qw( small large )) {
+        $id++;
 
-      lives_ok { $rs->create( { 'id' => $id, $type => $binstr{$size} } ) }
-      "inserted $size $type without dying";
+        lives_ok { $rs->create( { 'id' => $id, $type => $binstr{$size} } ) }
+        "inserted $size $type without dying";
 
-      ok($rs->find($id)->$type eq $binstr{$size}, "verified inserted $size $type" );
+        ok($rs->find($id)->$type eq $binstr{$size}, "verified inserted $size $type" );
+      }
     }
+  $schema->storage->debug ($orig_debug);
   }
 
-  $schema->storage->debug ($orig_debug);
-}
-
-
-### test hierarchical queries
-if ( $schema->storage->isa('DBIx::Class::Storage::DBI::Oracle::Generic') ) {
+  ### test hierarchical queries
+  if ( $schema->storage->isa('DBIx::Class::Storage::DBI::Oracle::Generic') ) {
     my $source = $schema->source('Artist');
 
     $source->add_column( 'parentid' );
@@ -672,66 +670,66 @@ if ( $schema->storage->isa('DBIx::Class::Storage::DBI::Oracle::Generic') ) {
 
       is( $rs->count, 4, 'Connect By Nocycle count ok' );
     }
-}
+  }
 
-my $schema2;
+  my $schema2;
 
-# test sequence detection from a different schema
-SKIP: {
-  skip ((join '',
-'Set DBICTEST_ORA_EXTRAUSER_DSN, _USER and _PASS to a *DIFFERENT* Oracle user',
-' to run the cross-schema autoincrement test.'),
+  # test sequence detection from a different schema
+  SKIP: {
+    skip ((join '',
+      'Set DBICTEST_ORA_EXTRAUSER_DSN, _USER and _PASS to a *DIFFERENT* Oracle user',
+      ' to run the cross-schema autoincrement test.'),
     1) unless $dsn2 && $user2 && $user2 ne $user;
 
-  $schema2 = DBICTest::Schema->connect($dsn2, $user2, $pass2, $opt);
-  push @schema, $schema2;
+    $schema2 = DBICTest::Schema->connect($dsn2, $user2, $pass2, $opt);
+    push @schema, $schema2;
 
-  my $schema1_dbh  = $schema->storage->dbh;
+    my $schema1_dbh  = $schema->storage->dbh;
 
-  $schema1_dbh->do("GRANT INSERT ON artist TO $user2");
-  $schema1_dbh->do("GRANT SELECT ON artist_seq TO $user2");
+    $schema1_dbh->do("GRANT INSERT ON artist TO $user2");
+    $schema1_dbh->do("GRANT SELECT ON artist_seq TO $user2");
 
-  my $rs = $schema2->resultset('ArtistFQN');
+    my $rs = $schema2->resultset('ArtistFQN');
 
-  # first test with unquoted (default) sequence name in trigger body
+    # first test with unquoted (default) sequence name in trigger body
 
-  lives_and {
-    my $row = $rs->create({ name => 'From Different Schema' });
-    ok $row->artistid;
-  } 'used autoinc sequence across schemas';
+    lives_and {
+      my $row = $rs->create({ name => 'From Different Schema' });
+      ok $row->artistid;
+    } 'used autoinc sequence across schemas';
 
-  # now quote the sequence name
+    # now quote the sequence name
 
-  $schema1_dbh->do(qq{
-    CREATE OR REPLACE TRIGGER artist_insert_trg
-    BEFORE INSERT ON artist
-    FOR EACH ROW
-    BEGIN
-      IF :new.artistid IS NULL THEN
-        SELECT "ARTIST_SEQ".nextval
-        INTO :new.artistid
-        FROM DUAL;
-      END IF;
-    END;
-  });
+    $schema1_dbh->do(qq{
+      CREATE OR REPLACE TRIGGER artist_insert_trg
+      BEFORE INSERT ON artist
+      FOR EACH ROW
+      BEGIN
+        IF :new.artistid IS NULL THEN
+          SELECT "ARTIST_SEQ".nextval
+          INTO :new.artistid
+          FROM DUAL;
+        END IF;
+      END;
+    });
 
-  # sequence is cached in the rsrc
-  delete $rs->result_source->column_info('artistid')->{sequence};
+    # sequence is cached in the rsrc
+    delete $rs->result_source->column_info('artistid')->{sequence};
 
-  lives_and {
-    my $row = $rs->create({ name => 'From Different Schema With Quoted Sequence' });
-    ok $row->artistid;
-  } 'used quoted autoinc sequence across schemas';
+    lives_and {
+      my $row = $rs->create({ name => 'From Different Schema With Quoted Sequence' });
+      ok $row->artistid;
+    } 'used quoted autoinc sequence across schemas';
 
-  my $schema_name = uc $user;
+    my $schema_name = uc $user;
 
-  is $rs->result_source->column_info('artistid')->{sequence},
-    qq[${schema_name}."ARTIST_SEQ"],
-    'quoted sequence name correctly extracted';
-  do_clean ($schema2);
-}
-do_clean ($schema);
-$i++;
+    is $rs->result_source->column_info('artistid')->{sequence},
+      qq[${schema_name}."ARTIST_SEQ"],
+      'quoted sequence name correctly extracted';
+    do_clean ($schema2);
+  }
+  do_clean ($schema);
+  $i++;
 }
 
 done_testing;
