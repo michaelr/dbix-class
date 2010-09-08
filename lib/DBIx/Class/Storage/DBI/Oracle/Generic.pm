@@ -109,7 +109,6 @@ sub _dbh_last_insert_id {
     my $seq;
     my $seq_from_schema = $source->column_info($col)->{sequence};
     if ($seq_from_schema) {
-      die "seq_from_schema";
       $seq = "${quote_char}${seq_from_schema}${quote_char}";
     } else {
       $seq = $self->get_autoinc_seq($source,$col);
