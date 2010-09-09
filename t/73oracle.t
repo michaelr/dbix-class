@@ -47,16 +47,16 @@ plan skip_all => 'Set $ENV{DBICTEST_ORA_DSN}, _USER and _PASS to run this test. 
 
 DBICTest::Schema->load_classes('ArtistFQN');
 
-# run all tests twice once with, once without quotes
-
+# recyclebin sometimes comes in the way. this is a test anyway
 my $on_connect_sql = ["ALTER SESSION SET recyclebin = OFF"];
+
+# iterate all tests on following options
 my @tryopt = (
   { on_connect_do => $on_connect_sql },
   { quote_char => '"', name_sep   => '.', on_connect_do => $on_connect_sql, },
 );
 
 my @schema; # keeps track of all schema for cleanup in END block
-my $i=0;
 OPT: for my $opt (@tryopt) {
 
   my $schema = DBICTest::Schema->connect($dsn, $user, $pass, $opt, );
@@ -253,7 +253,7 @@ OPT: for my $opt (@tryopt) {
 
       skip 'buggy BLOB support in DBD::Oracle 1.23', 7;
     }
-    last OPT if $i>0; # skip when quoting is on tests still need to be fixed
+    next OPT if $schema -> storage -> sql_maker -> quote_char; # skip when quoting is on tests still need to be fixed
 
   # disable BLOB mega-output
   my $orig_debug = $schema->storage->debug;
@@ -729,7 +729,6 @@ OPT: for my $opt (@tryopt) {
     do_clean ($schema2);
   }
   do_clean ($schema);
-  $i++;
 }
 
 done_testing;
@@ -753,10 +752,11 @@ sub do_creates {
   $dbh->do("CREATE TABLE ${q}sequence_test${q} (${q}pkid1${q} NUMBER(12), ${q}pkid2${q} NUMBER(12), ${q}nonpkid${q} NUMBER(12), ${q}name${q} VARCHAR(255))");
   $dbh->do("ALTER TABLE ${q}sequence_test${q} ADD (CONSTRAINT ${q}sequence_test_constraint${q} PRIMARY KEY (${q}pkid1${q}, ${q}pkid2${q}))");
 
-  $dbh->do("CREATE TABLE ${q}CD${q} (${q}cdid${q} NUMBER(12), ${q}artist${q} NUMBER(12), ${q}title${q} VARCHAR(255), ${q}year${q} VARCHAR(4), ${q}genreid${q} NUMBER(12), ${q}single_track${q} NUMBER(12))");
-  $dbh->do("ALTER TABLE ${q}CD${q} ADD (CONSTRAINT ${q}cd_pk${q} PRIMARY KEY (${q}cdid${q}))");
+  # table CD will be unquoted => Oracle will see it as uppercase
+  $dbh->do("CREATE TABLE CD (${q}cdid${q} NUMBER(12), ${q}artist${q} NUMBER(12), ${q}title${q} VARCHAR(255), ${q}year${q} VARCHAR(4), ${q}genreid${q} NUMBER(12), ${q}single_track${q} NUMBER(12))");
+  $dbh->do("ALTER TABLE CD ADD (CONSTRAINT ${q}cd_pk${q} PRIMARY KEY (${q}cdid${q}))");
 
-  $dbh->do("CREATE TABLE ${q}track${q} (${q}trackid${q} NUMBER(12), ${q}cd${q} NUMBER(12) REFERENCES ${q}CD${q}(${q}cdid${q}) DEFERRABLE, ${q}position${q} NUMBER(12), ${q}title${q} VARCHAR(255), ${q}last_updated_on${q} DATE, ${q}last_updated_at${q} DATE, ${q}small_dt${q} DATE)");
+  $dbh->do("CREATE TABLE ${q}track${q} (${q}trackid${q} NUMBER(12), ${q}cd${q} NUMBER(12) REFERENCES CD(${q}cdid${q}) DEFERRABLE, ${q}position${q} NUMBER(12), ${q}title${q} VARCHAR(255), ${q}last_updated_on${q} DATE, ${q}last_updated_at${q} DATE, ${q}small_dt${q} DATE)");
   $dbh->do("ALTER TABLE ${q}track${q} ADD (CONSTRAINT ${q}track_pk${q} PRIMARY KEY (${q}trackid${q}))");
 
   $dbh->do(qq{
@@ -773,7 +773,7 @@ sub do_creates {
   });
   $dbh->do(qq{
     CREATE OR REPLACE TRIGGER ${q}cd_insert_trg${q}
-    BEFORE INSERT OR UPDATE ON ${q}CD${q}
+    BEFORE INSERT OR UPDATE ON CD
     FOR EACH ROW
     BEGIN
       IF :new.${q}cdid${q} IS NULL THEN
@@ -785,7 +785,7 @@ sub do_creates {
   });
   $dbh->do(qq{
     CREATE OR REPLACE TRIGGER ${q}cd_insert_trg${q}
-    BEFORE INSERT ON ${q}CD${q}
+    BEFORE INSERT ON CD
     FOR EACH ROW
     BEGIN
       IF :new.${q}cdid${q} IS NULL THEN
@@ -815,21 +815,21 @@ sub do_clean {
     my $dbh = $schema -> storage -> dbh;
     my $q = $schema -> storage -> sql_maker -> quote_char || "";
     my @clean = (
-      "DROP TRIGGER ${q}artist_insert_trg${q}",
-      "DROP TRIGGER ${q}cd_insert_trg${q}",
-      "DROP TRIGGER ${q}cd_insert_trg${q}",
       "DROP TRIGGER ${q}track_insert_trg${q}",
-      "DROP SEQUENCE ${q}artist_seq${q}",
-      "DROP SEQUENCE ${q}cd_seq${q}",
-      "DROP SEQUENCE ${q}track_seq${q}",
-      "DROP SEQUENCE ${q}pkid1_seq${q}",
-      "DROP SEQUENCE ${q}pkid2_seq${q}",
+      "DROP TRIGGER ${q}cd_insert_trg${q}",
+      "DROP TRIGGER ${q}artist_insert_trg${q}",
       "DROP SEQUENCE ${q}nonpkid_seq${q}",
-      "DROP TABLE ${q}artist${q}",
+      "DROP SEQUENCE ${q}pkid2_seq${q}",
+      "DROP SEQUENCE ${q}pkid1_seq${q}",
+      "DROP SEQUENCE ${q}track_seq${q}",
+      "DROP SEQUENCE ${q}cd_seq${q}",
+      "DROP SEQUENCE ${q}artist_seq${q}",
+      "DROP TABLE ${q}bindtype_test${q}",
       "DROP TABLE ${q}sequence_test${q}",
       "DROP TABLE ${q}track${q}",
-      "DROP TABLE ${q}CD${q}",
-      "DROP TABLE ${q}bindtype_test${q}",
+      "DROP TABLE CD",
+      "DROP TABLE CD",
+      "DROP TABLE ${q}artist${q}",
     );
     eval { $dbh -> do ($_) } for @clean;
   }
