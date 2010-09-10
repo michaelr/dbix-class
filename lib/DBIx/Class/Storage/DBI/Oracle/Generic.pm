@@ -106,13 +106,7 @@ sub _dbh_last_insert_id {
   my @ids = ();
   my $quote_char = $self->schema->storage->sql_maker->quote_char || "";
   foreach my $col (@columns) {
-    my $seq;
-    my $seq_from_schema = $source->column_info($col)->{sequence};
-    if ($seq_from_schema) {
-      $seq = "${quote_char}${seq_from_schema}${quote_char}";
-    } else {
-      $seq = $self->get_autoinc_seq($source,$col);
-    }
+    my $seq = ($source->column_info($col)->{sequence} ||= $self->get_autoinc_seq($source,$col));
     my $id = $self->_sequence_fetch( 'currval', $seq );
     push @ids, $id;
   }

@@ -729,6 +729,15 @@ OPT: for my $opt (@tryopt) {
     do_clean ($schema2);
   }
   do_clean ($schema);
+
+### temporary
+for (grep { defined } @{$schema->storage->dbh->{ChildHandles}}) {
+  $_ -> finish;
+}
+$schema->storage->disconnect;
+undef $schema;
+### temporary
+
 }
 
 done_testing;
