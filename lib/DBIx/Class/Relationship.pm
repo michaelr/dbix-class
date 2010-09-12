@@ -6,7 +6,11 @@ use warnings;
 use base qw/DBIx::Class/;
 
 __PACKAGE__->load_own_components(qw/
-  Helpers
+  HasMany
+  HasOne
+  BelongsTo
+  ManyToMany
+
   Accessor
   CascadeActions
   ProxyMethods
