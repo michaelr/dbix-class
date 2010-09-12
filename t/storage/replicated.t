@@ -50,7 +50,7 @@ TESTSCHEMACLASSES: {
     ## Create an object to contain your replicated stuff.
     ## --------------------------------------------------------------------- ##
 
-    package DBIx::Class::DBI::Replicated::TestReplication;
+    package DBICTest::Replicated::TestReplication;
 
     use DBICTest;
     use base qw/Class::Accessor::Fast/;
@@ -147,11 +147,11 @@ TESTSCHEMACLASSES: {
     ## replication support.
     ## --------------------------------------------------------------------- ##
 
-    package DBIx::Class::DBI::Replicated::TestReplication::SQLite;
+    package DBICTest::Replicated::TestReplication::SQLite;
 
     use DBICTest;
     use File::Copy;
-    use base 'DBIx::Class::DBI::Replicated::TestReplication';
+    use base 'DBICTest::Replicated::TestReplication';
 
     __PACKAGE__->mk_accessors(qw/master_path slave_paths/);
 
@@ -226,8 +226,8 @@ TESTSCHEMACLASSES: {
     ## that will replicate in less than 1 second.
     ## --------------------------------------------------------------------- ##
 
-    package DBIx::Class::DBI::Replicated::TestReplication::Custom;
-    use base 'DBIx::Class::DBI::Replicated::TestReplication';
+    package DBICTest::Replicated::TestReplication::Custom;
+    use base 'DBICTest::Replicated::TestReplication';
 
     ## Return an Array of ArrayRefs where each ArrayRef is suitable to use for
     ## $storage->connect_info to be used for connecting replicants.
@@ -253,8 +253,8 @@ TESTSCHEMACLASSES: {
 ## Thi first bunch of tests are basic, just make sure all the bits are behaving
 
 my $replicated_class = DBICTest->has_custom_dsn ?
-    'DBIx::Class::DBI::Replicated::TestReplication::Custom' :
-    'DBIx::Class::DBI::Replicated::TestReplication::SQLite';
+    'DBICTest::Replicated::TestReplication::Custom' :
+    'DBICTest::Replicated::TestReplication::SQLite';
 
 my $replicated;
 
