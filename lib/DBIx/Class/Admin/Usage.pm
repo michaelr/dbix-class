@@ -1,18 +1,12 @@
 package     # hide from PAUSE
     DBIx::Class::Admin::Usage;
 
-
-use base 'Getopt::Long::Descriptive::Usage';
-
-use base 'Class::Accessor::Grouped';
-
-use Class::C3;
+use base qw/Getopt::Long::Descriptive::Usage Class::Accessor::Grouped/;
+use mro 'c3';
 
 __PACKAGE__->mk_group_accessors('simple', 'synopsis', 'short_description');
 
-sub prog_name {
-    Getopt::Long::Descriptive::prog_name();
-}
+sub prog_name { shift->next::method(@_) }
 
 sub set_simple {
     my ($self,$field, $value) = @_;
@@ -20,8 +14,6 @@ sub set_simple {
     $value =~ s/%c/$prog_name/g;
     $self->next::method($field, $value);
 }
-
-
 
 # This returns the usage formated as a pod document
 sub pod {

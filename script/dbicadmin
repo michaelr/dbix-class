@@ -11,9 +11,17 @@ BEGIN {
   ) unless DBIx::Class::Optional::Dependencies->req_ok_for ('admin_script');
 }
 
-use DBIx::Class::Admin::Descriptive;
-#use Getopt::Long::Descriptive;
+BEGIN {
+  package     # hide from PAUSE
+    DBIx::Class::Admin::Getopt::Descriptive;
+
+  use base 'Getopt::Long::Descriptive';
+  sub usage_class { 'DBIx::Class::Admin::Usage' }
+}
+
 use DBIx::Class::Admin;
+use DBIx::Class::Admin::Usage;
+DBIx::Class::Admin::Getopt::Descriptive->import();
 
 my $short_description = "utility for administrating DBIx::Class schemata";
 my $synopsis_text =q|
