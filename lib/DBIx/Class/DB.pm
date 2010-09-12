@@ -6,7 +6,6 @@ use warnings;
 use base qw/DBIx::Class/;
 use DBIx::Class::Schema;
 use DBIx::Class::Storage::DBI;
-use DBIx::Class::ClassResolver::PassThrough;
 use DBI;
 use Scalar::Util 'blessed';
 use namespace::clean;
@@ -57,6 +56,13 @@ it. See resolve_class below.
 
 __PACKAGE__->mk_classdata('class_resolver' =>
                           'DBIx::Class::ClassResolver::PassThrough');
+
+{
+  package # hide from PAUSE
+    DBIx::Class::ClassResolver::PassThrough;
+
+  sub class { return $_[1] }
+}
 
 =head2 connection
 
