@@ -56,22 +56,23 @@ my @tryopt = (
   { quote_char => '"', name_sep   => '.', on_connect_do => $on_connect_sql, },
 );
 
-my @schema; # keeps track of all schema for cleanup in END block
+# keep a database handle open for cleanup
+my $dbh;
+
 OPT: for my $opt (@tryopt) {
 
   my $schema = DBICTest::Schema->connect($dsn, $user, $pass, $opt, );
-  push @schema, $schema;
+  my $q = $schema -> storage -> sql_maker -> quote_char || "";
 
-  my $dbh = $schema->storage->dbh;
+  $dbh = $schema->storage->dbh;
 
-  do_creates($schema);
+  do_creates($dbh, $q);
 
   {
     # Swiped from t/bindtype_columns.t to avoid creating my own Resultset.
 
     local $SIG{__WARN__} = sub {};
-    my $q = $schema -> storage -> sql_maker -> quote_char || "";
-    eval { $dbh->do('DROP TABLE bindtype_test') };
+    eval { $dbh->do("DROP TABLE ${q}bindtype_test${q}") };
 
     $dbh->do(qq[
         CREATE TABLE ${q}bindtype_test${q}
@@ -81,7 +82,7 @@ OPT: for my $opt (@tryopt) {
             ${q}blob${q}            blob         NULL,
             ${q}clob${q}            clob         NULL
         )
-    ],{ RaiseError => 1, PrintError => 1 });
+    ],{ RaiseError => 1, PrintError => 0 });
   }
 
   # This is in Core now, but it's here just to test that it doesn't break
@@ -682,7 +683,6 @@ OPT: for my $opt (@tryopt) {
     1) unless $dsn2 && $user2 && $user2 ne $user;
 
     $schema2 = DBICTest::Schema->connect($dsn2, $user2, $pass2, $opt);
-    push @schema, $schema2;
 
     my $schema1_dbh  = $schema->storage->dbh;
 
@@ -726,28 +726,16 @@ OPT: for my $opt (@tryopt) {
     is $rs->result_source->column_info('artistid')->{sequence},
       qq[${schema_name}."ARTIST_SEQ"],
       'quoted sequence name correctly extracted';
-    do_clean ($schema2);
   }
-  do_clean ($schema);
-
-### temporary
-for (grep { defined } @{$schema->storage->dbh->{ChildHandles}}) {
-  $_ -> finish;
-}
-$schema->storage->disconnect;
-undef $schema;
-### temporary
-
+  do_clean ($dbh);
 }
 
 done_testing;
 
 sub do_creates {
-  my $schema = shift;
-  my $dbh = $schema -> storage -> dbh;
-  my $q = $schema -> storage -> sql_maker -> quote_char || "";
+  my ($dbh, $q) = @_;
 
-  do_clean($schema);
+  do_clean($dbh);
   $dbh->do("CREATE SEQUENCE ${q}artist_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
   $dbh->do("CREATE SEQUENCE ${q}cd_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
   $dbh->do("CREATE SEQUENCE ${q}track_seq${q} START WITH 1 MAXVALUE 999999 MINVALUE 0");
@@ -820,9 +808,9 @@ sub do_creates {
 
 # clean up our mess
 sub do_clean {
-  for my $schema (@_) {
-    my $dbh = $schema -> storage -> dbh;
-    my $q = $schema -> storage -> sql_maker -> quote_char || "";
+  my $dbh = shift || return;
+
+  for my $q ('', '"') {
     my @clean = (
       "DROP TRIGGER ${q}track_insert_trg${q}",
       "DROP TRIGGER ${q}cd_insert_trg${q}",
@@ -844,5 +832,8 @@ sub do_clean {
   }
 }
 
-END { do_clean(@schema) }
-
+END {
+  do_clean($dbh);
+  local $SIG{__WARN__} = sub {};
+  $dbh->disconnect;
+}
