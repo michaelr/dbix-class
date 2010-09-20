@@ -167,6 +167,7 @@ sub _sequence_fetch {
   my ( $self, $type, $seq ) = @_;
   my $name_sep = $self->schema->storage->sql_maker->name_sep || ".";
   my $quote_char = $self->schema->storage->sql_maker->quote_char || "";
+  my $oldseq = $seq;
   if ($quote_char) {
     unless ($seq =~ /\./) {
       unless ($seq =~ /^$quote_char/) {
@@ -174,6 +175,7 @@ sub _sequence_fetch {
       }
     }
   }
+  warn ("$oldseq THEN $seq");
   my ($id) = $self->_get_dbh->selectrow_array("SELECT ${seq}${name_sep}${type} FROM DUAL");
   return $id;
 }
