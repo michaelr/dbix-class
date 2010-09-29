@@ -724,7 +724,7 @@ OPT: for my $opt (@tryopt) {
     my $schema_name = uc $user;
 
     is $rs->result_source->column_info('artistid')->{sequence},
-      qq[${schema_name}."ARTIST_SEQ"],
+      qq[${schema_name}.ARTIST_SEQ],
       'quoted sequence name correctly extracted';
   }
   do_clean ($dbh);
@@ -824,7 +824,6 @@ sub do_clean {
       "DROP TABLE ${q}bindtype_test${q}",
       "DROP TABLE ${q}sequence_test${q}",
       "DROP TABLE ${q}track${q}",
-      "DROP TABLE CD",
       "DROP TABLE CD",
       "DROP TABLE ${q}artist${q}",
     );
