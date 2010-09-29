@@ -53,7 +53,7 @@ my $on_connect_sql = ["ALTER SESSION SET recyclebin = OFF"];
 # iterate all tests on following options
 my @tryopt = (
   { on_connect_do => $on_connect_sql },
-  { quote_char => '"', name_sep   => '.', on_connect_do => $on_connect_sql, },
+  #{ quote_char => '"', name_sep   => '.', on_connect_do => $on_connect_sql, },
 );
 
 # keep a database handle open for cleanup
@@ -723,8 +723,8 @@ OPT: for my $opt (@tryopt) {
 
     my $schema_name = uc $user;
 
-    is $rs->result_source->column_info('artistid')->{sequence},
-      qq[${schema_name}.ARTIST_SEQ],
+    is_deeply $rs->result_source->column_info('artistid')->{sequence},
+      \"${schema_name}.\"ARTIST_SEQ\"",
       'quoted sequence name correctly extracted';
   }
   do_clean ($dbh);

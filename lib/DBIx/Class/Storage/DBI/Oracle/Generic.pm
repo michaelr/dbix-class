@@ -149,7 +149,7 @@ sub _dbh_get_autoinc_seq {
   $sth->execute (@bind);
 
   while (my ($insert_trigger, $schema) = $sth->fetchrow_array) {
-    my ($seq_name) = $insert_trigger =~ m!"?([.\w]+)"?\.nextval!i;
+    my ($seq_name) = $insert_trigger =~ m!("?[.\w"]+"?)\.nextval!i;
 
     next unless $seq_name;
 
@@ -157,6 +157,7 @@ sub _dbh_get_autoinc_seq {
       $seq_name = join '.' => $schema, $seq_name;
     }
 
+    return \$seq_name if $seq_name =~ /\"/;
     return $seq_name;
   }
   $self->throw_exception("Unable to find a sequence %INSERT% trigger on table '$source_name'.");
@@ -165,9 +166,10 @@ sub _dbh_get_autoinc_seq {
 sub _sequence_fetch {
   my ( $self, $type, $seq ) = @_;
   my $sql_maker = $self->sql_maker;
+  my $quote_char = $sql_maker->quote_char;
   my $name_sep = $sql_maker->name_sep || ".";
-  my $type = uc $type;
-  my ($id) = $self->_get_dbh->selectrow_array ($sql_maker->select('DUAL', [ "${seq}${name_sep}${type}" ] ) );
+  $type = uc $type if $quote_char;
+  my ($id) = $self->_get_dbh->selectrow_array ($sql_maker->select('DUAL', [ ref $seq ? \"$$seq.$type" : "$seq.$type" ] ) );
   return $id;
 }
 
