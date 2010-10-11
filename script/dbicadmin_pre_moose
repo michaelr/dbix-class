@@ -1,0 +1,117 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+use DBIx::Class;
+use DBIx::Class::Optional::Dependencies;
+
+use Getopt::Long qw/:config bundling/;
+use Pod::Usage;
+use JSON::Any;
+
+
+my $json = JSON::Any->new(allow_barekey => 1, allow_singlequote => 1);
+
+GetOptions(
+    'schema=s'  => \my $schema_class,
+    'class=s'   => \my $resultset_class,
+    'connect=s' => \my $connect,
+    'op=s'      => \my $op,
+    'set=s'     => \my $set,
+    'where=s'   => \my $where,
+    'attrs=s'   => \my $attrs,
+    'format=s'  => \my $format,
+    'force'     => \my $force,
+    'quiet'     => \my $quiet,
+    'help'      => \my $help,
+    'I:s@'      => \my $inc,
+);
+
+pod2usage(1) if ($help);
+
+die('No op specified') if(!$op);
+die('Invalid op') if ($op!~/^insert|update|delete|select$/s);
+my $csv_class;
+if ($op eq 'select') {
+    $format ||= 'tsv';
+    die('Invalid format') if ($format!~/^tsv|csv$/s);
+    $csv_class = 'Text::CSV_XS';
+    eval{ require Text::CSV_XS };
+    if ($@) {
+        $csv_class = 'Text::CSV_PP';
+        eval{ require Text::CSV_PP };
+        die('The select op requires either the Text::CSV_XS or the Text::CSV_PP module') if ($@);
+    }
+}
+
+
+if($inc) {
+  require lib;
+  lib->import( @$inc );
+}
+
+
+die('No schema specified') if(!$schema_class);
+eval("require $schema_class");
+die('Unable to load schema') if ($@);
+$connect = $json->jsonToObj( $connect ) if ($connect);
+my $schema = $schema_class->connect(
+    ( $connect ? @$connect : () )
+);
+
+die('No class specified') if(!$resultset_class);
+my $resultset = eval{ $schema->resultset($resultset_class) };
+die('Unable to load the class with the schema') if ($@);
+
+$set = $json->jsonToObj( $set ) if ($set);
+$where = $json->jsonToObj( $where ) if ($where);
+$attrs = $json->jsonToObj( $attrs ) if ($attrs);
+
+if ($op eq 'insert') {
+    die('Do not use the where option with the insert op') if ($where);
+    die('Do not use the attrs option with the insert op') if ($attrs);
+    my $obj = $resultset->create( $set );
+    print ''.ref($resultset).' ID: '.join(',',$obj->id())."\n" if (!$quiet);
+}
+elsif ($op eq 'update') {
+    $resultset = $resultset->search( ($where||{}) );
+    my $count = $resultset->count();
+    print "This action will modify $count ".ref($resultset)." records.\n" if (!$quiet);
+    if ( $force || confirm() ) {
+        $resultset->update_all( $set );
+    }
+}
+elsif ($op eq 'delete') {
+    die('Do not use the set option with the delete op') if ($set);
+    $resultset = $resultset->search( ($where||{}), ($attrs||()) );
+    my $count = $resultset->count();
+    print "This action will delete $count ".ref($resultset)." records.\n" if (!$quiet);
+    if ( $force || confirm() ) {
+        $resultset->delete_all();
+    }
+}
+elsif ($op eq 'select') {
+    die('Do not use the set option with the select op') if ($set);
+    my $csv = $csv_class->new({
+        sep_char => ( $format eq 'tsv' ? "\t" : ',' ),
+    });
+    $resultset = $resultset->search( ($where||{}), ($attrs||()) );
+    my @columns = $resultset->result_source->columns();
+    $csv->combine( @columns );
+    print $csv->string()."\n";
+    while (my $row = $resultset->next()) {
+        my @fields;
+        foreach my $column (@columns) {
+            push( @fields, $row->get_column($column) );
+        }
+        $csv->combine( @fields );
+        print $csv->string()."\n";
+    }
+}
+
+sub confirm {
+    print "Are you sure you want to do this? (type YES to confirm) ";
+    my $response = <STDIN>;
+    return 1 if ($response=~/^YES/);
+    return;
+}

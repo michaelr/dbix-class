@@ -12,7 +12,6 @@ BEGIN {
 }
 
 use DBIx::Class::Admin::Descriptive;
-#use Getopt::Long::Descriptive;
 use DBIx::Class::Admin;
 
 my $short_description = "utility for administrating DBIx::Class schemata";
@@ -87,7 +86,6 @@ if($opts->{selfinject_pod}) {
     );
 }
 
-# FIXME - lowercasing will eventually go away when Getopt::Long::Descriptive is fixed
 if($opts->{i}) {
   require lib;
   lib->import( @{delete $opts->{i}} );
@@ -126,14 +124,3 @@ if ($action eq 'select') {
     print $csv->string()."\n";
   }
 }
-
-
-__END__
-
-# auto_pod_begin
-#
-# This will be replaced by the actual pod when selfinject-pod is invoked
-#
-# auto_pod_end
-
-# vim: et ft=perl
