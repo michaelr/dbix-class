@@ -8,12 +8,7 @@ use lib qw(t/lib);
 $ENV{PERL5LIB} = join ($Config{path_sep}, @INC);
 use DBICTest;
 
-
-BEGIN {
-    require DBIx::Class;
-    plan skip_all => 'Test needs ' . DBIx::Class::Optional::Dependencies->req_missing_for('admin_script')
-      unless DBIx::Class::Optional::Dependencies->req_ok_for('admin_script');
-}
+require DBIx::Class;
 
 my @json_backends = qw/XS JSON DWIW/;
 my $tests_per_run = 5;
