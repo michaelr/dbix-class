@@ -6,7 +6,7 @@
 
   __PACKAGE__->table(
       defined $ENV{DBICTEST_ORA_USER}
-      ? $ENV{DBICTEST_ORA_USER} . '.artist'
+      ? (uc $ENV{DBICTEST_ORA_USER}) . '.artist'
       : 'artist'
   );
   __PACKAGE__->add_columns(
@@ -53,7 +53,7 @@ my $on_connect_sql = ["ALTER SESSION SET recyclebin = OFF"];
 # iterate all tests on following options
 my @tryopt = (
   { on_connect_do => $on_connect_sql },
-  #{ quote_char => '"', name_sep   => '.', on_connect_do => $on_connect_sql, },
+  { quote_char => '"', name_sep   => '.', on_connect_do => $on_connect_sql, },
 );
 
 # keep a database handle open for cleanup
