@@ -62,9 +62,13 @@ sub new {
   my $new = {};
   bless $new, $self;
 
+  my $debug_env = $ENV{DBIX_CLASS_STORAGE_DBI_DEBUG}
+                  || $ENV{DBIC_TRACE};
+
+  $new->debug(1) if $debug_env;
   $new->set_schema($schema);
   my $debugobj;
-  if (my $profile = $ENV{DBIC_TRACE_PROFILE}) {
+  if ($debug_env && my $profile = $ENV{DBIC_TRACE_PROFILE}) {
     require DBIx::Class::Storage::Debug::PrettyPrint;
     if ($profile =~ /^\.?\//) {
       require Config::Any;
@@ -86,11 +90,6 @@ sub new {
     $debugobj = DBIx::Class::Storage::Statistics->new
   }
   $new->debugobj($debugobj);
-
-  my $debug_env = $ENV{DBIX_CLASS_STORAGE_DBI_DEBUG}
-                  || $ENV{DBIC_TRACE};
-
-  $new->debug(1) if $debug_env;
 
   $new;
 }

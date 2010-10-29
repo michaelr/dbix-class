@@ -8,6 +8,10 @@ Revision history for DBIx::Class
         - Fixed read-only attribute set attempt in ::Storage::Replicated
           (RT#62642)
 
+    * Misc
+        - Don't create DBIx::Class::Storage::Debug::PrettyPrinter unless
+          TRACE is on
+
 0.08124 2010-10-28 14:23 (UTC)
     * New Features / Changes
         - Add new -ident "function" indicating rhs is a column name
