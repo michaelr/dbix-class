@@ -6,6 +6,82 @@ DBIx::Class::Manual::Contributing - How to get involved in DBIx::Class
 
 =head1 CONTRIBUTORS
 
+=head2 Verify the change you want to make with other users
+
+To save yourself, and the DBIx::Class maintainers time, please take a
+moment to verify your ideas with other DBIx::Class users. Use the IRC
+channel (#dbix-class on irc.perl.org) or the mailing list L<> to get
+quick feedback on the change you'd like to make. Your idea may already
+be a work in progress you can help contribute to, and avoid
+duplicating effort, or there may be a better way to solve your
+problem.
+
+=head2 Getting the latest content
+
+DBIx::Class's source code is stored in a respoitory using the git
+version control system(L<http://??.com>). To contribute patches,
+whether code or for the documentation, please make sure you have a
+copy of the latest content.
+
+=head3 Using github.com
+
+L<http://github.com> allows you to contribute to git based projects
+using only your web browser. Use it ig you want to make casual/quick
+contributions to documentation.
+
+You can also use github to manage your forks of git based projects,
+and contribute more complex patches (which require running tests).
+
+=over
+
+=item Create/Login to an account on gihub
+
+Visit L<http://github.com> and create an account, or login to your existing account.
+
+=item Visit the official DBIx::Class github repo, and fork it
+
+L<http://github.com/dbsrgits/dbix-class> is the official DBIx::Class
+repo, use the "Fork" button near the top right of the page to create
+your own copy of the repo.
+
+=item Make your changes in your local copy (Docs)
+
+For pure documentation changes, you can now find the appropriate file
+to change using the github interface, hit the "Edit" link and make the
+required changes.
+
+=item Make your changes (Code + tests)
+
+To make code and test changes, you need to checkout the repository
+content onto your own computer, so the tests can be run.
+
+=over
+
+=item * Linux / Unix systems
+
+Run the "git clone" command passing it the url of your dbix-class fork, for example:
+
+    git clone http://github.com/castaway/dbix-class 
+
+This will create a directory "DBIx-Class" in your current directory,
+and extract all the dbix-class code into it.
+
+=item * Windows systems
+
+??
+
+=back
+
+=item Once tested, notify the dbix-class maintainers of the changes
+
+To submit changes back to the main DBIx::Class repository, use the
+"Send pull request" button on the top right of your github.com
+repository page.
+
+Use the IRC channel or mailing list to keep up with the progress of your patch.
+
+=back
+
 =head2 Submitting simple documentation patches
 
 =head3 For the CLI people
