@@ -16,7 +16,10 @@ my $filtered_cd_rs = $artist_rs->search_related('cds_unordered',
   { "$ar.rank" => 13 },
   {
     prefetch => [ 'tracks' ],
-    order_by => [ { -asc => "$ar.name" }, "$ar.artistid DESC" ],
+    order_by => [
+      { -asc => "$ar.name" }, "$ar.artistid DESC",
+      { -desc => \"length($ar.name)" }, \"CASE WHEN $ar.artistid > 5 THEN 1 ELSE 2 END"
+    ],
     offset   => 3,
     rows     => 3,
   },
@@ -34,8 +37,8 @@ is_same_sql_bind(
           JOIN cd cds_unordered
             ON cds_unordered.artist = me.artistid
         WHERE ( me.rank = ? )
-        GROUP BY cds_unordered.cdid, cds_unordered.artist, cds_unordered.title, cds_unordered.year, cds_unordered.genreid, cds_unordered.single_track, me.name, me.artistid
-        ORDER BY me.name ASC, me.artistid DESC
+        GROUP BY cds_unordered.cdid, cds_unordered.artist, cds_unordered.title, cds_unordered.year, cds_unordered.genreid, cds_unordered.single_track, me.name, me.artistid, length(me.name), CASE WHEN me.artistid > 5 THEN 1 ELSE 2 END
+        ORDER BY me.name ASC, me.artistid DESC, length(me.name) DESC, CASE WHEN me.artistid > 5 THEN 1 ELSE 2 END
         LIMIT 3
         OFFSET 3
       ) cds_unordered
@@ -43,7 +46,7 @@ is_same_sql_bind(
       LEFT JOIN track tracks
         ON tracks.cd = cds_unordered.cdid
     WHERE ( me.rank = ? )
-    ORDER BY me.name ASC, me.artistid DESC, tracks.cd
+    ORDER BY me.name ASC, me.artistid DESC, length(me.name) DESC, CASE WHEN me.artistid > 5 THEN 1 ELSE 2 END, tracks.cd
   )},
   [ [ 'me.rank' => 13 ], [ 'me.rank' => 13 ] ],
   'correct SQL on limited prefetch over search_related ordered by root',
