@@ -4,6 +4,7 @@ use warnings;
 use Test::More;
 use Test::Exception;
 use Sub::Name;
+use Time::HiRes qw/time sleep/;
 use lib qw(t/lib);
 use DBICTest;
 
@@ -388,6 +389,44 @@ lives_ok { $cds->update({ year => '2010' }) } 'Update on prefetched rs';
   } qr/constraint/i, 'with_deferred_fk_checks is off';
 }
 
+###### test race-inserts
+{
+  my $children = 5;
+  my $inserts_per_child = 3;
+
+  my $cd = $schema->resultset('CD')->next;
+  my $track_rs = $cd->tracks;
+
+  ok ($track_rs->count, 'CD has some tracks');
+
+  my $next_pos = $track_rs->get_column('position')->max_rs->as_query;
+  $$next_pos->[0] = "$$next_pos->[0] + 1";
+
+  my @pids;
+  for ( 1 .. $children ) {
+    push @pids, fork();
+
+    next if $pids[-1];
+    die 'failed to fork' unless defined $pids[-1];
+
+    # wait until next-second-and-a-tenth
+    # synchronizes all children to start working at the same time
+    my $t = time();
+    sleep (int ($t) + 1.1 - $t);
+
+    for ( 1 .. $inserts_per_child ) {
+      $track_rs->create( { title => "$$ $_", position => $next_pos } );
+    }
+
+    exit 0; # normal exit
+  }
+
+  for my $pid (@pids) {
+    waitpid ($pid, 0);
+    ok (! $?, "Child $pid exit ok");
+  }
+}
+
 done_testing;
 
 END {
@@ -445,6 +484,8 @@ CREATE TABLE dbic_t_schema.track (
   small_dt date
 )
 EOS
+
+      $dbh->do('CREATE UNIQUE INDEX unique_track_pos ON dbic_t_schema.track (cd, position)');
 
       $dbh->do(<<EOS);
 CREATE TABLE dbic_t_schema.sequence_test (
