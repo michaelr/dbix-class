@@ -1,6 +1,7 @@
 package DBIx::Class::Storage::DBI::Replicated::Replicant;
 
-use Moo::Role;
+use Scalar::Util qw(blessed);
+use Tiny::Role;
 requires qw/_query_start/;
 with 'DBIx::Class::Storage::DBI::Replicated::WithDSN';
 
@@ -44,8 +45,9 @@ storage driver for more information.
 has 'active' => (
   is=>'rw',
   isa=>sub {
-   unless(!defined($_[0]) || $_[0] eq "" || "$_[0]" eq '1' || "$_[0]" eq '0') {
-    die "$_[0] is not a bool";
+    unless(!defined($_[0]) || $_[0] eq "" || "$_[0]" eq '1' || "$_[0]" eq '0') {
+      die "$_[0] is not a bool";
+    }
   },
   lazy=>1,
   required=>1,
@@ -65,7 +67,7 @@ has master => (
   is => 'rw',
   isa => sub { ## replaces Object is DBIx::Class::Storage::DBI
     do {
-      Scalar::Util::blessed($_[0])
+      blessed($_[0])
       && $_[0]->isa('DBIx::Class::Storage::DBI');
     } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
   },
@@ -93,7 +95,7 @@ L<DBIx::Class::Storage::DBI::Replicated>
 
 =head1 AUTHOR
 
-John Napiorkowski <john.napiorkowski@takkle.com>
+John Napiorkowski <jjnapiork@cpan.org>
 
 =head1 LICENSE
 

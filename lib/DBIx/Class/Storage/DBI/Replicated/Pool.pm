@@ -1,9 +1,9 @@
 package DBIx::Class::Storage::DBI::Replicated::Pool;
 
-use Moose;
-use DBIx::Class::Storage::DBI::Replicated::Replicant;
+use Moo;
+use Role::Tiny;
 use List::Util 'sum';
-use Scalar::Util 'reftype';
+use Scalar::Util qw(looks_like_number reftype blessed);
 use DBI ();
 use Carp::Clan qw/^DBIx::Class/;
 use Try::Tiny;
@@ -42,7 +42,7 @@ has 'maximum_lag' => (
   is=>'rw',
   isa=>sub { ## Replaces Positive Num
     die "weight must be a decimal greater than 0, not $_[0]"
-      unless(Scalar::Util::looks_like_number($_[0]) and ($_[0] >= 0));      
+      unless(looks_like_number($_[0]) and ($_[0] >= 0));      
   },
   required=>1,
   lazy=>1,
@@ -61,7 +61,7 @@ has 'last_validated' => (
   is=>'rw',
   isa=>sub { ## Replaces Positive Int
     do {
-      Scalar::Util::looks_like_number($_[0])
+      looks_like_number($_[0])
       && (int($_[0]) == $_[0])
       && ($_[0] >= 0);
     } or die "$_[0] must be positive integer";
@@ -121,7 +121,7 @@ has next_unknown_replicant_id => (
   is => 'rw',
   isa=>sub { ## Replaces Positive Int
     do {
-      Scalar::Util::looks_like_number($_[0])
+      looks_like_number($_[0])
       && (int($_[0]) == $_[0])
       && ($_[0] >= 0);
     } or die "$_[0] must be positive integer";
@@ -146,7 +146,7 @@ has master => (
   is => 'rw',
   isa => sub { ## replaces DBICStorageDBI
     do {
-      Scalar::Util::blessed($_[0])
+      blessed($_[0])
       && $_[0]->isa('DBIx::Class::Storage::DBI');
     } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
   },
@@ -181,8 +181,8 @@ sub connect_replicants {
 
     my $dsn;
     my $replicant = do {
-# yes this is evil, but it only usually happens once (for coderefs)
-# this will fail if the coderef does not actually DBI::connect
+      ## yes this is evil, but it only usually happens once (for coderefs)
+      ## this will fail if the coderef does not actually DBI::connect
       no warnings 'redefine';
       my $connect = \&DBI::connect;
       local *DBI::connect = sub {
@@ -233,7 +233,7 @@ sub connect_replicant {
   my $replicant = $self->create_replicant($schema);
   $replicant->connect_info($connect_info);
 
-## It is undesirable for catalyst to connect at ->conect_replicants time, as
+## It is undesirable for catalyst to connect at ->connect_replicants time, as
 ## connections should only happen on the first request that uses the database.
 ## So we try to set the driver without connecting, however this doesn't always
 ## work, as a driver may need to connect to determine the DB version, and this
@@ -246,9 +246,9 @@ sub connect_replicant {
     $replicant->_determine_driver
   });
 
-  Moose::Meta::Class->initialize(ref $replicant);
-
-  DBIx::Class::Storage::DBI::Replicated::Replicant->meta->apply($replicant);
+  ##Moose::Meta::Class->initialize(ref $replicant);
+  Role::Tiny->apply_roles_to_object($replicant, 'DBIx::Class::Storage::DBI::Replicated::Replicant');
+  ##DBIx::Class::Storage::DBI::Replicated::Replicant->meta->apply($replicant);
 
   # link back to master
   $replicant->master($self->master);

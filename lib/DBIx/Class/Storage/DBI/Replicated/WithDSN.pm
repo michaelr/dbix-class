@@ -1,8 +1,8 @@
 package DBIx::Class::Storage::DBI::Replicated::WithDSN;
 
-use Moo::Role;
-use Scalar::Util 'reftype';
-use Try::Tiny;
+use Try::Tiny qw(try);
+use Scalar::Util qw(reftype);
+use Role::Tiny;
 requires qw/_query_start/;
 
 =head1 NAME
@@ -57,7 +57,7 @@ L<DBIx::Class::Storage::DBI>
 
 =head1 AUTHOR
 
-John Napiorkowski <john.napiorkowski@takkle.com>
+John Napiorkowski <jjnapiork@cpan.org>
 
 =head1 LICENSE
 

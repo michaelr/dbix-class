@@ -1,7 +1,7 @@
 package DBIx::Class::Storage::DBI::Replicated::Balancer;
 
-use Moo::Role;
-use Scalar::Util ();
+use Role::Tiny;
+use Scalar::Util qw(looks_like_number blessed);
 requires 'next_storage';
 
 =head1 NAME
@@ -34,7 +34,7 @@ has 'auto_validate_every' => (
   is=>'rw',
   isa=>sub { ## replaces Int
     do {
-      Scalar::Util::looks_like_number($_[0])
+      looks_like_number($_[0])
       && (int($_[0]) == $_[0])
       && ($_[0] >= 0);
     } or die "$_[0] must be positive integer";
@@ -54,7 +54,7 @@ has 'master' => (
   is=>'ro',
   isa=>sub { ## replaces Object is DBIx::Class::Storage::DBI
     do {
-      Scalar::Util::blessed($_[0])
+      blessed($_[0])
       && $_[0]->isa('DBIx::Class::Storage::DBI');
     } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
   },
@@ -72,7 +72,7 @@ has 'pool' => (
   is=>'ro',
   isa=>sub { ## DBIx::Class::Storage::DBI::Replicated::Pool
     do {
-      Scalar::Util::blessed($_[0])
+      blessed($_[0])
       && $_[0]->isa('DBIx::Class::Storage::DBI::Replicated::Pool');
     } or die "$_[0] !isa->('DBIx::Class::Storage::DBI::Replicated::Pool')"
   },
@@ -96,7 +96,7 @@ has 'current_replicant' => (
   is=> 'rw',
   isa=>sub {  ## replaces Object is DBIx::Class::Storage::DBI
     do {
-      Scalar::Util::blessed($_[0])
+      blessed($_[0])
       && $_[0]->isa('DBIx::Class::Storage::DBI');
     } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
   },
@@ -243,7 +243,7 @@ Given an identifier, find the most correct storage object to handle the query.
 
 sub _get_forced_pool {
   my ($self, $forced_pool) = @_;
-  if(Scalar::Util::blessed($forced_pool)) {
+  if(blessed($forced_pool)) {
     return $forced_pool;
   } elsif($forced_pool eq 'master') {
     return $self->master;
