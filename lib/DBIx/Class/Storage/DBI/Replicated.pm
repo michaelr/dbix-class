@@ -7,19 +7,14 @@ BEGIN {
     unless DBIx::Class::Optional::Dependencies->req_ok_for ('replicated');
 }
 
-use Moose;
+use Moo;
 use DBIx::Class::Storage::DBI;
 use DBIx::Class::Storage::DBI::Replicated::Pool;
 use DBIx::Class::Storage::DBI::Replicated::Balancer;
-use DBIx::Class::Storage::DBI::Replicated::Types qw/BalancerClassNamePart DBICSchema DBICStorageDBI/;
-use MooseX::Types::Moose qw/ClassName HashRef Object/;
-use Scalar::Util 'reftype';
+use Scalar::Util 'reftype', 'blessed';
 use Hash::Merge;
 use List::Util qw/min max reduce/;
 use Try::Tiny;
-use namespace::clean;
-
-use namespace::clean -except => 'meta';
 
 =head1 NAME
 
@@ -117,10 +112,15 @@ The underlying L<DBIx::Class::Schema> object this storage is attaching
 =cut
 
 has 'schema' => (
-    is=>'rw',
-    isa=>DBICSchema,
-    weak_ref=>1,
-    required=>1,
+  is=>'rw',
+  isa => sub { ## replaces Object is DBIx::Class::Storage::DBI
+    do {
+      Scalar::Util::blessed($_[0])
+      && $_[0]->isa('DBIx::Class::Storage::DBI');
+    } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
+  },
+  weak_ref=>1,
+  required=>1,
 );
 
 =head2 pool_type
@@ -132,7 +132,12 @@ to: L<DBIx::Class::Storage::DBI::Replicated::Pool>.
 
 has 'pool_type' => (
   is=>'rw',
-  isa=>ClassName,
+  isa=> sub{ ## replaces ClassName
+    do {
+      $_[0]
+      && $_[0]->can('can');
+    } or die "$_ must be a loaded class.";
+  },
   default=>'DBIx::Class::Storage::DBI::Replicated::Pool',
   handles=>{
     'create_pool' => 'new',
@@ -148,7 +153,10 @@ See L<DBIx::Class::Storage::DBI::Replicated::Pool> for available arguments.
 
 has 'pool_args' => (
   is=>'rw',
-  isa=>HashRef,
+  isa => sub { ## Replaces HashRef
+    die 'Value is not a HashRef'
+      unless reftype eq 'HASH';   
+  },
   lazy=>1,
   default=>sub { {} },
 );
@@ -181,7 +189,10 @@ See L<DBIx::Class::Storage::DBI::Replicated::Balancer> for available arguments.
 
 has 'balancer_args' => (
   is=>'rw',
-  isa=>HashRef,
+  isa => sub { ## Replaces HashRef
+    die 'Value is not a HashRef'
+      unless reftype eq 'HASH';   
+  },
   lazy=>1,
   required=>1,
   default=>sub { {} },
@@ -196,12 +207,17 @@ container class for one or more replicated databases.
 
 has 'pool' => (
   is=>'ro',
-  isa=>'DBIx::Class::Storage::DBI::Replicated::Pool',
+  isa => sub { ## replaces Object is DBIx::Class::Storage::DBI::Replicated::Pool
+      do {
+      Scalar::Util::blessed($_[0])
+      && $_[0]->isa('DBIx::Class::Storage::DBI::Replicated::Pool');
+    } or die "$_[0] !isa->('DBIx::Class::Storage::DBI::Replicated::Pool')"
+  },
+
   lazy_build=>1,
   handles=>[qw/
     connect_replicants
     replicants
-    has_replicants
   /],
 );
 
@@ -214,7 +230,13 @@ is a class that takes a pool (L<DBIx::Class::Storage::DBI::Replicated::Pool>)
 
 has 'balancer' => (
   is=>'rw',
-  isa=>'DBIx::Class::Storage::DBI::Replicated::Balancer',
+  isa => sub { ## DBIx::Class::Storage::DBI::Replicated::Balancer
+      do {
+      Scalar::Util::blessed($_[0])
+      && $_[0]->isa('DBIx::Class::Storage::DBI::Replicated::Balancer');
+    } or die "$_[0] !isa->('DBIx::Class::Storage::DBI::Replicated::Balancer')"
+  },
+
   lazy_build=>1,
   handles=>[qw/auto_validate_every/],
 );
@@ -231,7 +253,12 @@ pool of databases that is allowed to handle write traffic.
 
 has 'master' => (
   is=> 'ro',
-  isa=>DBICStorageDBI,
+  isa => sub { ## replaces Object is DBIx::Class::Storage::DBI
+    do {
+      Scalar::Util::blessed($_[0])
+      && $_[0]->isa('DBIx::Class::Storage::DBI');
+    } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
+  },
   lazy_build=>1,
 );
 
@@ -248,7 +275,12 @@ Defines an object that implements the read side of L<BIx::Class::Storage::DBI>.
 
 has 'read_handler' => (
   is=>'rw',
-  isa=>Object,
+  isa=>sub { ## replaces Object
+    do {
+      $_[0]
+      && blessed($_[0]);
+    } or die "Not an object!";
+  },
   lazy_build=>1,
   handles=>[qw/
     select
@@ -270,7 +302,12 @@ run on a replicant.
 
 has 'write_handler' => (
   is=>'ro',
-  isa=>Object,
+  isa=>sub { ## replaces Object
+    do {
+      $_[0]
+      && blessed($_[0]);
+    } or die "Not an object!";
+  },
   lazy_build=>1,
   handles=>[qw/
     on_connect_do
@@ -1110,7 +1147,5 @@ Based on code originated by:
 You may distribute this code under the same terms as Perl itself.
 
 =cut
-
-__PACKAGE__->meta->make_immutable;
 
 1;

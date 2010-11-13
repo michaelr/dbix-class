@@ -385,10 +385,10 @@ isa_ok $replicated->schema->storage->balancer->current_replicant
 
 $replicated->schema->storage->debugobj->silence(0);
 
-ok $replicated->schema->storage->pool->has_replicants
+ok scalar(keys($replicated->schema->storage->pool->replicants))
     => 'does have replicants';
 
-is $replicated->schema->storage->pool->num_replicants => 2
+is scalar(keys($replicated->schema->storage->pool->replicants)), 2
     => 'has two replicants';
 
 does_ok $replicated_storages[0]

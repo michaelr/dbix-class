@@ -40,7 +40,7 @@ any single replicant, if for example you have a very powerful master.
 
 has master_read_weight => (
   is => 'rw',
-  isa => sub {
+  isa => sub { ## Replaces Int
     die "weight must be a decimal greater than 0, not $_[0]"
       unless(Scalar::Util::looks_like_number($_[0]) and ($_[0] >= 0));
   },
@@ -60,7 +60,7 @@ be requested several times in a row.
 =cut
 
 sub next_storage {
-  my $self = shift @_;
+  my $self = shift;
   my @replicants = $self->pool->active_replicants;
 
   if (not @replicants) {

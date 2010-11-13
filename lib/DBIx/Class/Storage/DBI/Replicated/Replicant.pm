@@ -1,12 +1,8 @@
 package DBIx::Class::Storage::DBI::Replicated::Replicant;
 
-use Moose::Role;
+use Moo::Role;
 requires qw/_query_start/;
 with 'DBIx::Class::Storage::DBI::Replicated::WithDSN';
-use MooseX::Types::Moose qw/Bool Str/;
-use DBIx::Class::Storage::DBI::Replicated::Types 'DBICStorageDBI';
-
-use namespace::clean -except => 'meta';
 
 =head1 NAME
 
@@ -47,14 +43,17 @@ storage driver for more information.
 
 has 'active' => (
   is=>'rw',
-  isa=>Bool,
+  isa=>sub {
+   unless(!defined($_[0]) || $_[0] eq "" || "$_[0]" eq '1' || "$_[0]" eq '0') {
+    die "$_[0] is not a bool";
+  },
   lazy=>1,
   required=>1,
   default=>1,
 );
 
-has dsn => (is => 'rw', isa => Str);
-has id  => (is => 'rw', isa => Str);
+has dsn => (is => 'rw', isa => sub { die "Not a string" unless defined($_[0]) });
+has id  => (is => 'rw', isa => sub { die "Not a string" unless defined($_[0]) });
 
 =head2 master
 
@@ -62,7 +61,16 @@ Reference to the master Storage.
 
 =cut
 
-has master => (is => 'rw', isa => DBICStorageDBI, weak_ref => 1);
+has master => (
+  is => 'rw',
+  isa => sub { ## replaces Object is DBIx::Class::Storage::DBI
+    do {
+      Scalar::Util::blessed($_[0])
+      && $_[0]->isa('DBIx::Class::Storage::DBI');
+    } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
+  },
+  weak_ref => 1,
+);
 
 =head1 METHODS
 
@@ -75,9 +83,7 @@ Override the debugobj method to redirect this method call back to the master.
 =cut
 
 sub debugobj {
-  my $self = shift;
-
-  return $self->master->debugobj;
+  (shift)->master->debugobj;
 }
 
 =head1 ALSO SEE
