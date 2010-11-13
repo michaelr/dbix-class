@@ -2,7 +2,7 @@ package DBIx::Class::Storage::DBI::Replicated::WithDSN;
 
 use Try::Tiny qw(try);
 use Scalar::Util qw(reftype);
-use Moo::Role;
+use Role::Tiny;
 requires qw/_query_start/;
 
 =head1 NAME
