@@ -172,8 +172,8 @@ choose how to spread the query load across each replicant in the pool.
 
 has 'balancer_type' => (
   is=>'rw',
-  isa=>BalancerClassNamePart,
-  coerce=>1,
+#  isa=>BalancerClassNamePart,
+#  coerce=>1,
   required=>1,
   default=> 'DBIx::Class::Storage::DBI::Replicated::Balancer::First',
   handles=>{
