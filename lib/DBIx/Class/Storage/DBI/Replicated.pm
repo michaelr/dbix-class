@@ -341,7 +341,6 @@ has 'write_handler' => (
     with_deferred_fk_checks
     dbh_do
     reload_row
-    with_deferred_fk_checks
     _prep_for_execute
 
     backup
