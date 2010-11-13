@@ -31,7 +31,7 @@ __PACKAGE__->add_columns(
     is_nullable => 1
   },
   small_dt => { # for mssql and sybase DT tests
-    data_type => 'smalldatetime',
+    data_type => 'datetime',
     is_nullable => 1
   },
 );

@@ -1,8 +1,7 @@
 package DBIx::Class::Storage::DBI::Replicated::Balancer::First;
 
-use Moose;
+use Moo;
 with 'DBIx::Class::Storage::DBI::Replicated::Balancer';
-use namespace::clean -except => 'meta';
 
 =head1 NAME
 
@@ -48,7 +47,5 @@ John Napiorkowski <john.napiorkowski@takkle.com>
 You may distribute this code under the same terms as Perl itself.
 
 =cut
-
-__PACKAGE__->meta->make_immutable;
 
 1;
