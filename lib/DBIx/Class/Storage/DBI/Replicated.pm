@@ -404,23 +404,23 @@ has 'write_handler' => (
   /],
 );
 
-my @unimplemented = qw(
-  _arm_global_destructor
-  _preserve_foreign_dbh
-  _verify_pid
-  _verify_tid
+#my @unimplemented = qw(
+#  _arm_global_destructor
+#  _preserve_foreign_dbh
+#  _verify_pid
+#  _verify_tid
 
-  get_use_dbms_capability
-  set_use_dbms_capability
-  get_dbms_capability
-  set_dbms_capability
-  _dbh_details
+#  get_use_dbms_capability
+#  set_use_dbms_capability
+#  get_dbms_capability
+#  set_dbms_capability
+#  _dbh_details
 
-  sql_limit_dialect
+#  sql_limit_dialect
 
-  _inner_join_to_node
-  _group_over_selection
-);
+#  _inner_join_to_node
+#  _group_over_selection
+#);
 
 # the capability framework
 # not sure if CMOP->initialize does evil things to DBIC::S::DBI, fix if a problem
@@ -439,7 +439,7 @@ has _master_connect_info_opts => (
   is => 'rw',
   isa => sub { ## replace HashRef
     die "Value is not a HashRef"
-      unless(defined($_[0] && reftype($_[0]) eq 'HASH');
+      unless(defined($_[0]) && (reftype($_[0]) eq 'HASH'));
   },
   default => sub { +{} },
 );
