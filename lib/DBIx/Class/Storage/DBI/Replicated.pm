@@ -8,12 +8,13 @@ BEGIN {
 }
 
 use Moo;
+use Role::Tiny ();
 use DBIx::Class::Storage::DBI;
 use DBIx::Class::Storage::DBI::Replicated::Pool;
 use DBIx::Class::Storage::DBI::Replicated::Balancer;
-use Scalar::Util 'reftype', 'blessed';
+use Scalar::Util qw(reftype blessed);
 use Hash::Merge;
-use List::Util qw/min max reduce/;
+use List::Util qw(min max reduce);
 use Try::Tiny;
 
 =head1 NAME
@@ -155,7 +156,7 @@ has 'pool_args' => (
   is=>'rw',
   isa => sub { ## Replaces HashRef
     die 'Value is not a HashRef'
-      unless reftype eq 'HASH';   
+      unless reftype($_[0]) eq 'HASH';   
   },
   lazy=>1,
   default=>sub { {} },
@@ -191,7 +192,7 @@ has 'balancer_args' => (
   is=>'rw',
   isa => sub { ## Replaces HashRef
     die 'Value is not a HashRef'
-      unless reftype eq 'HASH';   
+      unless reftype($_[0]) eq 'HASH';   
   },
   lazy=>1,
   required=>1,
@@ -423,19 +424,25 @@ my @unimplemented = qw(
 
 # the capability framework
 # not sure if CMOP->initialize does evil things to DBIC::S::DBI, fix if a problem
-push @unimplemented, ( grep
-  { $_ =~ /^ _ (?: use | supports | determine_supports ) _ /x }
-  ( Class::MOP::Class->initialize('DBIx::Class::Storage::DBI')->get_all_method_names )
+#push @unimplemented, ( grep
+#  { $_ =~ /^ _ (?: use | supports | determine_supports ) _ /x }
+#  ( Class::MOP::Class->initialize('DBIx::Class::Storage::DBI')->get_all_method_names )
+#);
+
+#for my $method (@unimplemented) {
+#  __PACKAGE__->meta->add_method($method, sub {
+#    croak "$method must not be called on ".(blessed shift).' objects';
+#  });
+#}
+
+has _master_connect_info_opts => (
+  is => 'rw',
+  isa => sub { ## replace HashRef
+    die "Value is not a HashRef"
+      unless(defined($_[0] && reftype($_[0]) eq 'HASH');
+  },
+  default => sub { +{} },
 );
-
-for my $method (@unimplemented) {
-  __PACKAGE__->meta->add_method($method, sub {
-    croak "$method must not be called on ".(blessed shift).' objects';
-  });
-}
-
-has _master_connect_info_opts =>
-  (is => 'rw', isa => HashRef, default => sub { {} });
 
 =head2 around: connect_info
 
@@ -495,9 +502,10 @@ around connect_info => sub {
   # Make sure master is blessed into the correct class and apply role to it.
   my $master = $self->master;
   $master->_determine_driver;
-  Moose::Meta::Class->initialize(ref $master);
 
-  DBIx::Class::Storage::DBI::Replicated::WithDSN->meta->apply($master);
+  ## Moose::Meta::Class->initialize(ref $master);
+  Role::Tiny->apply_roles_to_object($master, 'DBIx::Class::Storage::DBI::Replicated::WithDSN');
+  ## DBIx::Class::Storage::DBI::Replicated::WithDSN->meta->apply($master);
 
   # link pool back to master
   $self->pool->master($master);

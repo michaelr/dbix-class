@@ -1,7 +1,7 @@
 package DBIx::Class::Storage::DBI::Replicated::Balancer;
 
-use Role::Tiny;
 use Scalar::Util qw(looks_like_number blessed);
+use Moo::Role;
 requires 'next_storage';
 
 =head1 NAME
@@ -32,6 +32,7 @@ validating every query.
 
 has 'auto_validate_every' => (
   is=>'rw',
+  predicate=>'has_auto_validate_every',
   isa=>sub { ## replaces Int
     do {
       looks_like_number($_[0])
@@ -39,7 +40,6 @@ has 'auto_validate_every' => (
       && ($_[0] >= 0);
     } or die "$_[0] must be positive integer";
   },
-  predicate=>'has_auto_validate_every',
 );
 
 =head2 master

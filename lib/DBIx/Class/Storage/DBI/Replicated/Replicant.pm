@@ -1,7 +1,7 @@
 package DBIx::Class::Storage::DBI::Replicated::Replicant;
 
 use Scalar::Util qw(blessed);
-use Tiny::Role;
+use Moo::Role;
 requires qw/_query_start/;
 with 'DBIx::Class::Storage::DBI::Replicated::WithDSN';
 

@@ -1,7 +1,7 @@
 package DBIx::Class::Storage::DBI::Replicated::Pool;
 
 use Moo;
-use Role::Tiny;
+use Role::Tiny ();
 use List::Util 'sum';
 use Scalar::Util qw(looks_like_number reftype blessed);
 use DBI ();
@@ -66,8 +66,6 @@ has 'last_validated' => (
       && ($_[0] >= 0);
     } or die "$_[0] must be positive integer";
   },
-  reader=>'last_validated',
-  writer=>'_last_validated',
   lazy=>1,
   default=>sub {0},
 );
@@ -112,7 +110,7 @@ has 'replicants' => (
   is => 'rw',
   isa => sub { ## Replaces HashRef['Object']
     die 'Value is not a HashRef'
-      unless reftype eq 'HASH';   
+      unless reftype($_[0]) eq 'HASH';   
   },
   default => sub { +{} },
 );
@@ -401,7 +399,7 @@ sub validate_replicants {
     }
   }
   ## Mark that we completed this validation.  
-  $self->_last_validated(time);  
+  $self->last_validated(time);  
 }
 
 =head1 AUTHOR
