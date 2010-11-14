@@ -33,8 +33,7 @@ use_ok 'DBIx::Class::Storage::DBI::Replicated::Balancer::First';
     two ways, either it was try to fake replication with a couple of SQLite DBs
     and creative use of copy, or if you define a couple of %ENV vars correctly
     will try to test those.  If you do that, it will assume the setup is properly
-    replicating.  Your results may vary, but I have demonstrated this to work with
-    mysql native replication.
+    replicating.  
 
 =cut
 
@@ -123,22 +122,21 @@ TESTSCHEMACLASSES: {
     ## --------------------------------------------------------------------- ##
     ## Add a connect_info option to test option merging.
     ## --------------------------------------------------------------------- ##
+
+## TODO connect_info is lazily delegated, seems Class::Method::Modifiers doesnt
+## see it?
+
 #    {
 #    package DBIx::Class::Storage::DBI::Replicated;
 
-#    use Moose;
-
-#    __PACKAGE__->meta->make_mutable;
-
+#    use Moo;
 #    around connect_info => sub {
 #      my ($next, $self, $info) = @_;
 #      $info->[3]{master_option} = 1;
 #      $self->$next($info);
 #    };
 
-#    __PACKAGE__->meta->make_immutable;
-
-#    no Moose;
+#    no Moo;
 #    }
 
     ## --------------------------------------------------------------------- ##
@@ -335,6 +333,9 @@ isa_ok $replicated->schema->storage->pool
 
 ##does_ok $replicated->schema->storage->balancer
 ##    => 'DBIx::Class::Storage::DBI::Replicated::Balancer';
+    #
+ok $replicated->schema->storage->balancer->does('DBIx::Class::Storage::DBI::Replicated::Balancer'),
+  'does Balancer';
 
 ok my @replicant_connects = $replicated->generate_replicant_connect_info
     => 'got replication connect information';
