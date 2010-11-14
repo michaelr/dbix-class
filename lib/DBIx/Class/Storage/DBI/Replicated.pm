@@ -139,7 +139,7 @@ has 'pool_type' => (
       && $_[0]->can('can');
     } or die "$_ must be a loaded class.";
   },
-  default=>'DBIx::Class::Storage::DBI::Replicated::Pool',
+  default=> sub { 'DBIx::Class::Storage::DBI::Replicated::Pool'},
   handles=>{
     'create_pool' => 'new',
   },
@@ -172,9 +172,10 @@ choose how to spread the query load across each replicant in the pool.
 
 has 'balancer_type' => (
   is=>'rw',
+  isa=> sub {},
 #  isa=>BalancerClassNamePart,
 #  coerce=>1,
-  default=> 'DBIx::Class::Storage::DBI::Replicated::Balancer::First',
+  default=> sub { 'DBIx::Class::Storage::DBI::Replicated::Balancer::First' },
   handles=>{
     'create_balancer' => 'new',
   },
@@ -212,7 +213,7 @@ has 'pool' => (
       && $_[0]->isa('DBIx::Class::Storage::DBI::Replicated::Pool');
     } or die "$_[0] !isa->('DBIx::Class::Storage::DBI::Replicated::Pool')"
   },
-  lazy_build=>1,
+  lazy=>1,
   handles=>[qw/
     connect_replicants
     replicants
@@ -235,7 +236,7 @@ has 'balancer' => (
     } or die "$_[0] !isa->('DBIx::Class::Storage::DBI::Replicated::Balancer')"
   },
 
-  lazy_build=>1,
+  lazy=>1,
   handles=>[qw/auto_validate_every/],
 );
 
@@ -257,7 +258,7 @@ has 'master' => (
       && $_[0]->isa('DBIx::Class::Storage::DBI');
     } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
   },
-  lazy_build=>1,
+  lazy=>1,
 );
 
 =head1 ATTRIBUTES IMPLEMENTING THE DBIx::Storage::DBI INTERFACE
@@ -279,7 +280,8 @@ has 'read_handler' => (
       && blessed($_[0]);
     } or die "Not an object!";
   },
-  lazy_build=>1,
+  lazy=>1,
+  builder=>'_build_read_handler',
   handles=>[qw/
     select
     select_single
@@ -306,7 +308,8 @@ has 'write_handler' => (
       && blessed($_[0]);
     } or die "Not an object!";
   },
-  lazy_build=>1,
+  lazy=>1,
+  builder=>'_build_write_handler',
   handles=>[qw/
     on_connect_do
     on_disconnect_do
@@ -523,10 +526,6 @@ bits get put into the correct places.
 
 around 'new', sub {
   my ($orig, $class, $schema, $storage_type_args, @args) = @_;
-
-use Data::Dump 'dump';
-warn dump($orig, $class, ref($schema), $storage_type_args, @args);
-
   return $orig->(
     $class,
     schema => $schema,
