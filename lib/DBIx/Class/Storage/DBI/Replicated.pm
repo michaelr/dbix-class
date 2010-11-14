@@ -174,7 +174,6 @@ has 'balancer_type' => (
   is=>'rw',
 #  isa=>BalancerClassNamePart,
 #  coerce=>1,
-  required=>1,
   default=> 'DBIx::Class::Storage::DBI::Replicated::Balancer::First',
   handles=>{
     'create_balancer' => 'new',
@@ -195,8 +194,7 @@ has 'balancer_args' => (
       unless reftype($_[0]) eq 'HASH';   
   },
   lazy=>1,
-  required=>1,
-  default=>sub { {} },
+  default=>sub { +{} },
 );
 
 =head2 pool
@@ -214,7 +212,6 @@ has 'pool' => (
       && $_[0]->isa('DBIx::Class::Storage::DBI::Replicated::Pool');
     } or die "$_[0] !isa->('DBIx::Class::Storage::DBI::Replicated::Pool')"
   },
-
   lazy_build=>1,
   handles=>[qw/
     connect_replicants
@@ -516,7 +513,7 @@ around connect_info => sub {
 
 This class defines the following methods.
 
-=head2 BUILDARGS
+=head2 new
 
 L<DBIx::Class::Schema> when instantiating its storage passed itself as the
 first argument.  So we need to massage the arguments a bit so that all the
@@ -524,15 +521,19 @@ bits get put into the correct places.
 
 =cut
 
-sub BUILDARGS {
-  my ($class, $schema, $storage_type_args, @args) = @_;
+around 'new', sub {
+  my ($orig, $class, $schema, $storage_type_args, @args) = @_;
 
-  return {
-    schema=>$schema,
+use Data::Dump 'dump';
+warn dump($orig, $class, ref($schema), $storage_type_args, @args);
+
+  return $orig->(
+    $class,
+    schema => $schema,
     %$storage_type_args,
-    @args
-  }
-}
+    @args,
+  );
+};
 
 =head2 _build_master
 
