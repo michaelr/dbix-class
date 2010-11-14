@@ -80,7 +80,7 @@ sub _random_number {
 
 =head1 AUTHOR
 
-John Napiorkowski <john.napiorkowski@takkle.com>
+John Napiorkowski <jjnapiork@cpan.org>
 
 =head1 LICENSE
 

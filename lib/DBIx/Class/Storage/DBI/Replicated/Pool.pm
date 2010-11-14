@@ -40,9 +40,9 @@ return a number of seconds that the replicating database is lagging.
 
 has 'maximum_lag' => (
   is=>'rw',
-  isa=>sub { ## Replaces Positive Num
-    die "weight must be a decimal greater than 0, not $_[0]"
-      unless(looks_like_number($_[0]) and ($_[0] >= 0));      
+  isa=>sub { ## Replaces Num
+    die "weight must be a number, not $_[0]"
+      unless(looks_like_number($_[0]));      
   },
   lazy=>1,
   default=>sub {0},
@@ -207,9 +207,12 @@ sub connect_replicants {
     }
 
     $replicant->id($key);
-    ## TODO this has got to be wrong, you'd think you'd need to
-    ## add them on not blow them away each time
-    $self->replicants({$key => $replicant});  
+
+    ## Add the new replicant to the list
+    $self->replicants({
+        $key => $replicant,
+        %{$self->replicants},
+    });  
 
     push @newly_created, $replicant;
   }

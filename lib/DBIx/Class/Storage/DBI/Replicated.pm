@@ -233,8 +233,8 @@ has 'balancer' => (
   isa => sub { ## DBIx::Class::Storage::DBI::Replicated::Balancer
       do {
       Scalar::Util::blessed($_[0])
-      && $_[0]->isa('DBIx::Class::Storage::DBI::Replicated::Balancer');
-    } or die "$_[0] !isa->('DBIx::Class::Storage::DBI::Replicated::Balancer')"
+      && $_[0]->can('next_storage');
+    } or die "$_[0] not an object with method 'next_storage'";
   },
 
   lazy=>1,
