@@ -584,9 +584,7 @@ the L</master>.
 =cut
 
 sub _build_write_handler {
-my $self = shift;
-my $master = $self->master;
-  return $master;
+  return shift->master;
 }
 
 =head2 _build_read_handler
