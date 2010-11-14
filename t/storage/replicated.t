@@ -9,15 +9,11 @@ BEGIN {
       unless DBIx::Class::Optional::Dependencies->req_ok_for ('test_replicated');
 }
 
-use Test::Moose;
 use Test::Exception;
 use List::Util 'first';
 use Scalar::Util 'reftype';
 use File::Spec;
 use IO::Handle;
-use Moose();
-use MooseX::Types();
-note "Using Moose version $Moose::VERSION and MooseX::Types version $MooseX::Types::VERSION";
 
 use lib qw(t/lib);
 use DBICTest;
@@ -122,22 +118,22 @@ TESTSCHEMACLASSES: {
     ## Add a connect_info option to test option merging.
     ## --------------------------------------------------------------------- ##
     {
-    package DBIx::Class::Storage::DBI::Replicated;
+#    package DBIx::Class::Storage::DBI::Replicated;
 
-    use Moose;
+#    use Moose;
 
-    __PACKAGE__->meta->make_mutable;
+#    __PACKAGE__->meta->make_mutable;
 
-    around connect_info => sub {
-      my ($next, $self, $info) = @_;
-      $info->[3]{master_option} = 1;
-      $self->$next($info);
-    };
+#    around connect_info => sub {
+#      my ($next, $self, $info) = @_;
+#      $info->[3]{master_option} = 1;
+#      $self->$next($info);
+#    };
 
-    __PACKAGE__->meta->make_immutable;
+#    __PACKAGE__->meta->make_immutable;
 
-    no Moose;
-    }
+#    no Moose;
+#    }
 
     ## --------------------------------------------------------------------- ##
     ## Subclass for when you are using SQLite for testing, this provides a fake
@@ -272,57 +268,57 @@ for my $method (qw/by_connect_info by_storage_type/) {
 }
 
 ### check that all Storage::DBI methods are handled by ::Replicated
-{
-  my @storage_dbi_methods = Class::MOP::Class
-    ->initialize('DBIx::Class::Storage::DBI')->get_all_method_names;
+#{
+#  my @storage_dbi_methods = Class::MOP::Class
+#    ->initialize('DBIx::Class::Storage::DBI')->get_all_method_names;
 
-  my @replicated_methods  = DBIx::Class::Storage::DBI::Replicated->meta
-    ->get_all_method_names;
+#  my @replicated_methods  = DBIx::Class::Storage::DBI::Replicated->meta
+#    ->get_all_method_names;
 
 # remove constants and OTHER_CRAP
-  @storage_dbi_methods = grep !/^[A-Z_]+\z/, @storage_dbi_methods;
+#  @storage_dbi_methods = grep !/^[A-Z_]+\z/, @storage_dbi_methods;
 
 # remove CAG accessors
-  @storage_dbi_methods = grep !/_accessor\z/, @storage_dbi_methods;
+#  @storage_dbi_methods = grep !/_accessor\z/, @storage_dbi_methods;
 
 # remove DBIx::Class (the root parent, with CAG and stuff) methods
-  my @root_methods = Class::MOP::Class->initialize('DBIx::Class')
-    ->get_all_method_names;
-  my %count;
-  $count{$_}++ for (@storage_dbi_methods, @root_methods);
+#  my @root_methods = Class::MOP::Class->initialize('DBIx::Class')
+#    ->get_all_method_names;
+#  my %count;
+#  $count{$_}++ for (@storage_dbi_methods, @root_methods);
 
-  @storage_dbi_methods = grep $count{$_} != 2, @storage_dbi_methods;
+#  @storage_dbi_methods = grep $count{$_} != 2, @storage_dbi_methods;
 
 # make hashes
-  my %storage_dbi_methods;
-  @storage_dbi_methods{@storage_dbi_methods} = ();
-  my %replicated_methods;
-  @replicated_methods{@replicated_methods} = ();
+#  my %storage_dbi_methods;
+#  @storage_dbi_methods{@storage_dbi_methods} = ();
+#  my %replicated_methods;
+#  @replicated_methods{@replicated_methods} = ();
 
 # remove ::Replicated-specific methods
-  for my $method (@replicated_methods) {
-    delete $replicated_methods{$method}
-      unless exists $storage_dbi_methods{$method};
-  }
-  @replicated_methods = keys %replicated_methods;
+#  for my $method (@replicated_methods) {
+#    delete $replicated_methods{$method}
+#      unless exists $storage_dbi_methods{$method};
+#  }
+#  @replicated_methods = keys %replicated_methods;
 
 # check that what's left is implemented
-  %count = ();
-  $count{$_}++ for (@storage_dbi_methods, @replicated_methods);
+#  %count = ();
+#  $count{$_}++ for (@storage_dbi_methods, @replicated_methods);
 
-  if ((grep $count{$_} == 2, @storage_dbi_methods) == @storage_dbi_methods) {
-    pass 'all DBIx::Class::Storage::DBI methods implemented';
-  }
-  else {
-    my @unimplemented = grep $count{$_} == 1, @storage_dbi_methods;
+#  if ((grep $count{$_} == 2, @storage_dbi_methods) == @storage_dbi_methods) {
+#    pass 'all DBIx::Class::Storage::DBI methods implemented';
+#  }
+#  else {
+#    my @unimplemented = grep $count{$_} == 1, @storage_dbi_methods;
 
-    fail 'the following DBIx::Class::Storage::DBI methods are unimplemented: '
-      . "@unimplemented";
-  }
-}
+#    fail 'the following DBIx::Class::Storage::DBI methods are unimplemented: '
+#      . "@unimplemented";
+#  }
+#}
 
-ok $replicated->schema->storage->meta
-    => 'has a meta object';
+#ok $replicated->schema->storage->meta
+#    => 'has a meta object';
 
 isa_ok $replicated->schema->storage->master
     => 'DBIx::Class::Storage::DBI';
