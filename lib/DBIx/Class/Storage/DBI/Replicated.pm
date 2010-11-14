@@ -114,11 +114,11 @@ The underlying L<DBIx::Class::Schema> object this storage is attaching
 
 has 'schema' => (
   is=>'rw',
-  isa => sub { ## replaces Object is DBIx::Class::Storage::DBI
+  isa => sub { ## replaces Object is DBIx::Class::Schema'
     do {
-      Scalar::Util::blessed($_[0])
-      && $_[0]->isa('DBIx::Class::Storage::DBI');
-    } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
+      blessed($_[0])
+      && $_[0]->isa('DBIx::Class::Schema');
+    } or die "$_[0] !isa->('DBIx::Class::Schema')"
   },
   weak_ref=>1,
   required=>1,
