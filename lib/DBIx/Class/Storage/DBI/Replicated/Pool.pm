@@ -44,7 +44,6 @@ has 'maximum_lag' => (
     die "weight must be a decimal greater than 0, not $_[0]"
       unless(looks_like_number($_[0]) and ($_[0] >= 0));      
   },
-  required=>1,
   lazy=>1,
   default=>sub {0},
 );
@@ -86,7 +85,6 @@ has 'replicant_type' => (
       && $_[0]->can('can');
     } or die "$_ must be a loaded class.";
   },
-  required=>1,
   default=> sub{'DBIx::Class::Storage::DBI'},
   handles=>{
     'create_replicant' => 'new',
