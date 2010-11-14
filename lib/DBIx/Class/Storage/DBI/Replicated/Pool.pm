@@ -87,7 +87,7 @@ has 'replicant_type' => (
     } or die "$_ must be a loaded class.";
   },
   required=>1,
-  default=>'DBIx::Class::Storage::DBI',
+  default=> sub{'DBIx::Class::Storage::DBI'},
   handles=>{
     'create_replicant' => 'new',
   },  

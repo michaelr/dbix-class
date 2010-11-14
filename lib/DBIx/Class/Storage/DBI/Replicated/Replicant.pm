@@ -51,7 +51,7 @@ has 'active' => (
   },
   lazy=>1,
   required=>1,
-  default=>1,
+  default=> sub {1},
 );
 
 has dsn => (is => 'rw', isa => sub { die "Not a string" unless defined($_[0]) });

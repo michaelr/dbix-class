@@ -214,6 +214,7 @@ has 'pool' => (
     } or die "$_[0] !isa->('DBIx::Class::Storage::DBI::Replicated::Pool')"
   },
   lazy=>1,
+  builder=>'_build_pool',
   handles=>[qw/
     connect_replicants
     replicants
@@ -237,6 +238,7 @@ has 'balancer' => (
   },
 
   lazy=>1,
+  builder=>'_build_balancer',
   handles=>[qw/auto_validate_every/],
 );
 
@@ -259,6 +261,7 @@ has 'master' => (
     } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
   },
   lazy=>1,
+  builder=>'_build_master',
 );
 
 =head1 ATTRIBUTES IMPLEMENTING THE DBIx::Storage::DBI INTERFACE
@@ -543,7 +546,7 @@ Lazy builder for the L</master> attribute.
 sub _build_master {
   my $self = shift @_;
   my $master = DBIx::Class::Storage::DBI->new($self->schema);
-  $master
+  return $master;
 }
 
 =head2 _build_pool
@@ -581,7 +584,9 @@ the L</master>.
 =cut
 
 sub _build_write_handler {
-  return shift->master;
+my $self = shift;
+my $master = $self->master;
+  return $master;
 }
 
 =head2 _build_read_handler

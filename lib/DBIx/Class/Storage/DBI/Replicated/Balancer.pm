@@ -101,6 +101,7 @@ has 'current_replicant' => (
     } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
   },
   lazy=>1,
+  builder=>'_build_current_replicant',
   handles=>[qw/
     select
     select_single
