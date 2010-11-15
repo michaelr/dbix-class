@@ -266,59 +266,39 @@ for my $method (qw/by_connect_info by_storage_type/) {
       => 'configured balancer_type';
 }
 
-### check that all Storage::DBI methods are handled by ::Replicated
+## Check that all Storage::DBI methods are handled by ::Replicated
 {
+  ## Get a bunch of methods to check
   my @storage_dbi_methods = Class::MOP::Class
     ->initialize('DBIx::Class::Storage::DBI')
     ->get_all_method_names;
 
-  my @replicated_methods  = Class::MOP::Class
-    ->initialize('DBIx::Class::Storage::DBI::Replicated')
-    ->get_all_method_names;
-
-# remove constants and OTHER_CRAP
+  ## remove constants and OTHER_CRAP
   @storage_dbi_methods = grep !/^[A-Z_]+\z/, @storage_dbi_methods;
 
-# remove CAG accessors
+  ## remove CAG accessors
   @storage_dbi_methods = grep !/_accessor\z/, @storage_dbi_methods;
 
-# remove DBIx::Class (the root parent, with CAG and stuff) methods
-  my @root_methods = Class::MOP::Class->initialize('DBIx::Class')
+  ## we need to exclude this stuff as well
+  my %root_methods = map { $_ => 1 } Class::MOP::Class
+    ->initialize('DBIx::Class')
     ->get_all_method_names;
-  my %count;
-  $count{$_}++ for (@storage_dbi_methods, @root_methods);
 
-  @storage_dbi_methods = grep $count{$_} != 2, @storage_dbi_methods;
+  @storage_dbi_methods = grep { !$root_methods{$_} } @storage_dbi_methods;
 
-# make hashes
-  my %storage_dbi_methods;
-  @storage_dbi_methods{@storage_dbi_methods} = ();
-  my %replicated_methods;
-  @replicated_methods{@replicated_methods} = ();
-
-# remove ::Replicated-specific methods
-  for my $method (@replicated_methods) {
-    delete $replicated_methods{$method}
-      unless exists $storage_dbi_methods{$method};
+  ## anything missing?
+  my @missing_methods;
+  for my $method (@storage_dbi_methods) {
+    push @missing_methods, $method
+      unless $replicated->schema->storage->can($method);
   }
-  @replicated_methods = keys %replicated_methods;
 
-# check that what's left is implemented
-  %count = ();
-  $count{$_}++ for (@storage_dbi_methods, @replicated_methods);
-
-  if ((grep $count{$_} == 2, @storage_dbi_methods) == @storage_dbi_methods) {
+  if(scalar(@missing_methods)) {
+    my $missing = join (',', @missing_methods);
+    fail "the following DBIx::Class::Storage::DBI methods are unimplemented: $missing";
+  } else {
     pass 'all DBIx::Class::Storage::DBI methods implemented';
-  }
-  else {
-    my @unimplemented = grep $count{$_} == 1, @storage_dbi_methods;
-
-    SKIP: {
-      skip 'Moo version of DBIx::Class::Storage::DBI::Replicated does not work with CMOP->initialize', 1;
-      fail 'the following DBIx::Class::Storage::DBI methods are unimplemented: '
-        . "@unimplemented";
-    }
-  }
+  }  
 }
 
 isa_ok $replicated->schema->storage->master
