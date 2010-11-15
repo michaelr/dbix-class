@@ -16,6 +16,7 @@ use Scalar::Util qw(reftype blessed);
 use Hash::Merge;
 use List::Util qw(min max reduce);
 use Try::Tiny;
+use Sub::Name 'subname';
 
 =head1 NAME
 
@@ -411,36 +412,39 @@ has 'write_handler' => (
   /],
 );
 
-#my @unimplemented = qw(
-#  _arm_global_destructor
-#  _preserve_foreign_dbh
-#  _verify_pid
-#  _verify_tid
+my @unimplemented = qw(
+  _arm_global_destructor
+  _preserve_foreign_dbh
+  _verify_pid
+  _verify_tid
 
-#  get_use_dbms_capability
-#  set_use_dbms_capability
-#  get_dbms_capability
-#  set_dbms_capability
-#  _dbh_details
+  get_use_dbms_capability
+  set_use_dbms_capability
+  get_dbms_capability
+  set_dbms_capability
+  _dbh_details
 
-#  sql_limit_dialect
+  sql_limit_dialect
 
-#  _inner_join_to_node
-#  _group_over_selection
-#);
+  _inner_join_to_node
+  _group_over_selection
+);
 
 # the capability framework
 # not sure if CMOP->initialize does evil things to DBIC::S::DBI, fix if a problem
-#push @unimplemented, ( grep
-#  { $_ =~ /^ _ (?: use | supports | determine_supports ) _ /x }
-#  ( Class::MOP::Class->initialize('DBIx::Class::Storage::DBI')->get_all_method_names )
-#);
+push @unimplemented, ( grep
+  { $_ =~ /^ _ (?: use | supports | determine_supports ) _ /x }
+  ( Class::MOP::Class->initialize('DBIx::Class::Storage::DBI')->get_all_method_names )
+);
 
-#for my $method (@unimplemented) {
-#  __PACKAGE__->meta->add_method($method, sub {
-#    croak "$method must not be called on ".(blessed shift).' objects';
-#  });
-#}
+for my $method (@unimplemented) {
+  { 
+    no strict qw/refs/;
+    *{__PACKAGE__ ."::$method"} = subname $method => sub {
+      croak "$method must not be called on ".(blessed shift).' objects';
+    };
+  }
+}
 
 has _master_connect_info_opts => (
   is => 'rw',
