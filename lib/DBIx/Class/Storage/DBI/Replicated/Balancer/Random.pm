@@ -1,7 +1,7 @@
 package DBIx::Class::Storage::DBI::Replicated::Balancer::Random;
 
 use Moo;
-use Scalar::Util qw(looks_like_number);
+use DBIx::Class::Storage::DBI::Replicated::Types qw(PositiveNumber);
 with 'DBIx::Class::Storage::DBI::Replicated::Balancer';
 
 =head1 NAME
@@ -40,10 +40,7 @@ any single replicant, if for example you have a very powerful master.
 
 has master_read_weight => (
   is => 'rw',
-  isa => sub { ## Replaces Int
-    die "weight must be a decimal greater than 0, not $_[0]"
-      unless(looks_like_number($_[0]) and ($_[0] >= 0));
-  },
+  isa => PositiveNumber(err => sub {"weight must be a positive number, not $_[0]"}),
   default => sub { 0 },
 );
 

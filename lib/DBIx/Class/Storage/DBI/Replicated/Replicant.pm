@@ -1,7 +1,9 @@
 package DBIx::Class::Storage::DBI::Replicated::Replicant;
 
-use Scalar::Util qw(blessed);
 use Moo::Role;
+use DBIx::Class::Storage::DBI::Replicated::Types
+  qw(Boolean DBICStorageDBI Defined);
+
 requires qw/_query_start/;
 with 'DBIx::Class::Storage::DBI::Replicated::WithDSN';
 
@@ -44,18 +46,14 @@ storage driver for more information.
 
 has 'active' => (
   is=>'rw',
-  isa=>sub {
-    unless(!defined($_[0]) || $_[0] eq "" || "$_[0]" eq '1' || "$_[0]" eq '0') {
-      die "$_[0] is not a bool";
-    }
-  },
+  isa=>Boolean,
   lazy=>1,
   required=>1,
   default=> sub {1},
 );
 
-has dsn => (is => 'rw', isa => sub { die "Not a string" unless defined($_[0]) });
-has id  => (is => 'rw', isa => sub { die "Not a string" unless defined($_[0]) });
+has dsn => (is => 'rw', isa => Defined(msg=>sub{"$_[0] not a DSN"}));
+has id  => (is => 'rw', isa => Defined);
 
 =head2 master
 
@@ -65,12 +63,7 @@ Reference to the master Storage.
 
 has master => (
   is => 'rw',
-  isa => sub { ## replaces Object is DBIx::Class::Storage::DBI
-    do {
-      blessed($_[0])
-      && $_[0]->isa('DBIx::Class::Storage::DBI');
-    } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
-  },
+  isa =>DBICStorageDBI,
   weak_ref => 1,
 );
 

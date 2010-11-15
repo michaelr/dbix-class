@@ -2,11 +2,13 @@ package DBIx::Class::Storage::DBI::Replicated::Pool;
 
 use Moo;
 use Role::Tiny ();
-use List::Util 'sum';
-use Scalar::Util qw(looks_like_number reftype blessed);
+use List::Util ();
+use Scalar::Util qw(reftype);
 use DBI ();
 use Carp::Clan qw/^DBIx::Class/;
 use Try::Tiny;
+use DBIx::Class::Storage::DBI::Replicated::Types
+  qw(PositiveInteger Number DBICStorageDBI ClassName HashRef);
 
 =head1 NAME
 
@@ -40,10 +42,7 @@ return a number of seconds that the replicating database is lagging.
 
 has 'maximum_lag' => (
   is=>'rw',
-  isa=>sub { ## Replaces Num
-    die "weight must be a number, not $_[0]"
-      unless(looks_like_number($_[0]));      
-  },
+  isa=>Number,
   lazy=>1,
   default=>sub {0},
 );
@@ -58,13 +57,7 @@ built-in.
 
 has 'last_validated' => (
   is=>'rw',
-  isa=>sub { ## Replaces Positive Int
-    do {
-      looks_like_number($_[0])
-      && (int($_[0]) == $_[0])
-      && ($_[0] >= 0);
-    } or die "$_[0] must be positive integer";
-  },
+  isa=>PositiveInteger,
   lazy=>1,
   default=>sub {0},
 );
@@ -79,12 +72,7 @@ just leave this alone.
 
 has 'replicant_type' => (
   is=>'ro',
-  isa=> sub{ ## replaces ClassName
-    do {
-      $_[0]
-      && $_[0]->can('can');
-    } or die "$_ must be a loaded class.";
-  },
+  isa=>ClassName,
   default=> sub{'DBIx::Class::Storage::DBI'},
   handles=>{
     'create_replicant' => 'new',
@@ -106,22 +94,13 @@ You could access the specific replicant via:
 
 has 'replicants' => (
   is => 'rw',
-  isa => sub { ## Replaces HashRef['Object']
-    die 'Value is not a HashRef'
-      unless reftype($_[0]) eq 'HASH';   
-  },
+  isa => HashRef,
   default => sub { +{} },
 );
 
 has next_unknown_replicant_id => (
   is => 'rw',
-  isa=>sub { ## Replaces Positive Int
-    do {
-      looks_like_number($_[0])
-      && (int($_[0]) == $_[0])
-      && ($_[0] >= 0);
-    } or die "$_[0] must be positive integer";
-  },
+  isa=>PositiveInteger
   default => sub { 1 },
 );
 
@@ -140,12 +119,7 @@ Reference to the master Storage.
 
 has master => (
   is => 'rw',
-  isa => sub { ## replaces DBICStorageDBI
-    do {
-      blessed($_[0])
-      && $_[0]->isa('DBIx::Class::Storage::DBI');
-    } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
-  },
+  isa =>DBICStorageDBI,
   weak_ref => 1,
 );
 
@@ -316,7 +290,7 @@ is actually connected, try not to hit this 10 times a second.
 
 sub connected_replicants {
   my $self = shift @_;
-  return sum( map {
+  return List::Util::sum( map {
     $_->connected ? 1:0
   } $self->all_replicants );
 }

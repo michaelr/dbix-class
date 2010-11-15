@@ -10,13 +10,14 @@ BEGIN {
 use Moo;
 use Role::Tiny ();
 use DBIx::Class::Storage::DBI;
-use DBIx::Class::Storage::DBI::Replicated::Pool;
-use DBIx::Class::Storage::DBI::Replicated::Balancer;
 use Scalar::Util qw(reftype blessed);
 use Hash::Merge;
 use List::Util qw(min max reduce);
 use Try::Tiny;
 use Sub::Name 'subname';
+use DBIx::Class::Storage::DBI::Replicated::Types
+  qw(DBICSchema DBICStorageDBI ClassName HashRef Object 
+  DoesDBICStorageReplicatedBalancer DBICStorageDBIReplicatedPool Defined);
 
 =head1 NAME
 
@@ -115,12 +116,7 @@ The underlying L<DBIx::Class::Schema> object this storage is attaching
 
 has 'schema' => (
   is=>'rw',
-  isa => sub { ## replaces Object is DBIx::Class::Schema'
-    do {
-      blessed($_[0])
-      && $_[0]->isa('DBIx::Class::Schema');
-    } or die "$_[0] !isa->('DBIx::Class::Schema')"
-  },
+  isa=>DBICSchema,
   weak_ref=>1,
   required=>1,
 );
@@ -134,12 +130,7 @@ to: L<DBIx::Class::Storage::DBI::Replicated::Pool>.
 
 has 'pool_type' => (
   is=>'rw',
-  isa=> sub{ ## replaces ClassName
-    do {
-      $_[0]
-      && $_[0]->can('can');
-    } or die "$_ must be a loaded class.";
-  },
+  isa=>ClassName,
   default=> sub { 'DBIx::Class::Storage::DBI::Replicated::Pool'},
   handles=>{
     'create_pool' => 'new',
@@ -155,10 +146,7 @@ See L<DBIx::Class::Storage::DBI::Replicated::Pool> for available arguments.
 
 has 'pool_args' => (
   is=>'rw',
-  isa => sub { ## Replaces HashRef
-    die 'Value is not a HashRef'
-      unless reftype($_[0]) eq 'HASH';   
-  },
+  isa =>HashRef,
   lazy=>1,
   default=>sub { {} },
 );
@@ -173,11 +161,10 @@ choose how to spread the query load across each replicant in the pool.
 
 has 'balancer_type' => (
   is=>'rw',
-  isa=> sub {},
-  default=> sub { 'DBIx::Class::Storage::DBI::Replicated::Balancer::First' },
+  isa=>Defined,
+  default=>sub { 'DBIx::Class::Storage::DBI::Replicated::Balancer::First' },
 );
 
-## Hack to replace lack of coercion in balancer_type
 sub create_balancer {
     my ($self, @args) = @_;
     my $type = $self->balancer_type;
@@ -196,10 +183,7 @@ See L<DBIx::Class::Storage::DBI::Replicated::Balancer> for available arguments.
 
 has 'balancer_args' => (
   is=>'rw',
-  isa => sub { ## Replaces HashRef
-    die 'Value is not a HashRef'
-      unless reftype($_[0]) eq 'HASH';   
-  },
+  isa =>HashRef,
   lazy=>1,
   default=>sub { +{} },
 );
@@ -213,12 +197,7 @@ container class for one or more replicated databases.
 
 has 'pool' => (
   is=>'ro',
-  isa => sub { ## replaces Object is DBIx::Class::Storage::DBI::Replicated::Pool
-      do {
-      Scalar::Util::blessed($_[0])
-      && $_[0]->isa('DBIx::Class::Storage::DBI::Replicated::Pool');
-    } or die "$_[0] !isa->('DBIx::Class::Storage::DBI::Replicated::Pool')"
-  },
+  isa =>DBICStorageDBIReplicatedPool,
   lazy=>1,
   builder=>'_build_pool',
   handles=>[qw/
@@ -236,13 +215,7 @@ is a class that takes a pool (L<DBIx::Class::Storage::DBI::Replicated::Pool>)
 
 has 'balancer' => (
   is=>'rw',
-  isa => sub { ## DBIx::Class::Storage::DBI::Replicated::Balancer
-      do {
-      Scalar::Util::blessed($_[0])
-      && $_[0]->can('next_storage');
-    } or die "$_[0] not an object with method 'next_storage'";
-  },
-
+  isa => DoesDBICStorageReplicatedBalancer,
   lazy=>1,
   builder=>'_build_balancer',
   handles=>[qw/auto_validate_every/],
@@ -260,12 +233,7 @@ pool of databases that is allowed to handle write traffic.
 
 has 'master' => (
   is=> 'ro',
-  isa => sub { ## replaces Object is DBIx::Class::Storage::DBI
-    do {
-      Scalar::Util::blessed($_[0])
-      && $_[0]->isa('DBIx::Class::Storage::DBI');
-    } or die "$_[0] !isa->('DBIx::Class::Storage::DBI')"
-  },
+  isa => DBICStorageDBI,
   lazy=>1,
   builder=>'_build_master',
 );
@@ -283,12 +251,7 @@ Defines an object that implements the read side of L<BIx::Class::Storage::DBI>.
 
 has 'read_handler' => (
   is=>'rw',
-  isa=>sub { ## replaces Object
-    do {
-      $_[0]
-      && blessed($_[0]);
-    } or die "Not an object!";
-  },
+  isa=>Object,
   lazy=>1,
   builder=>'_build_read_handler',
   handles=>[qw/
@@ -311,12 +274,7 @@ run on a replicant.
 
 has 'write_handler' => (
   is=>'ro',
-  isa=>sub { ## replaces Object
-    do {
-      $_[0]
-      && blessed($_[0]);
-    } or die "Not an object!";
-  },
+  isa=>Object,
   lazy=>1,
   builder=>'_build_write_handler',
   handles=>[qw/
@@ -448,10 +406,7 @@ for my $method (@unimplemented) {
 
 has _master_connect_info_opts => (
   is => 'rw',
-  isa => sub { ## replace HashRef
-    die "Value is not a HashRef"
-      unless(defined($_[0]) && (reftype($_[0]) eq 'HASH'));
-  },
+  isa =>HashRef ,
   default => sub { +{} },
 );
 
@@ -1154,7 +1109,7 @@ using the Schema clone method.
 
 =head1 AUTHOR
 
-  John Napiorkowski <john.napiorkowski@takkle.com>
+  John Napiorkowski <jjnapiork@cpan.org>
 
 Based on code originated by:
 
