@@ -23,10 +23,6 @@ use_ok 'DBIx::Class::Storage::DBI::Replicated::Balancer';
 use_ok 'DBIx::Class::Storage::DBI::Replicated::Replicant';
 use_ok 'DBIx::Class::Storage::DBI::Replicated';
 
-## TODO load these for now until we can replace coercion on balancer attr
-use_ok 'DBIx::Class::Storage::DBI::Replicated::Balancer::Random';
-use_ok 'DBIx::Class::Storage::DBI::Replicated::Balancer::First';
-
 =head1 HOW TO USE
 
     This is a test of the replicated storage system.  This will work in one of
@@ -85,8 +81,7 @@ TESTSCHEMACLASSES: {
         sqlite_use_file => 1,
         storage_type=>{
           '::DBI::Replicated' => {
-            ##balancer_type=>'::Random',
-            balancer_type=>'DBIx::Class::Storage::DBI::Replicated::Balancer::Random',
+            balancer_type=>'::Random',
             balancer_args=>{
               auto_validate_every=>100,
           master_read_weight => 1
@@ -103,8 +98,7 @@ TESTSCHEMACLASSES: {
       DBICTest->init_schema(
         sqlite_use_file => 1,
         storage_type=> '::DBI::Replicated',
-        ##balancer_type=>'::Random',
-        balancer_type=>'DBIx::Class::Storage::DBI::Replicated::Balancer::Random',
+        balancer_type=>'::Random',
         balancer_args=> {
           auto_validate_every=>100,
           master_read_weight => 1

@@ -173,13 +173,18 @@ choose how to spread the query load across each replicant in the pool.
 has 'balancer_type' => (
   is=>'rw',
   isa=> sub {},
-#  isa=>BalancerClassNamePart,
-#  coerce=>1,
   default=> sub { 'DBIx::Class::Storage::DBI::Replicated::Balancer::First' },
-  handles=>{
-    'create_balancer' => 'new',
-  },
 );
+
+## Hack to replace lack of coercion in balancer_type
+sub create_balancer {
+    my ($self, @args) = @_;
+    my $type = $self->balancer_type;
+    $type = 'DBIx::Class::Storage::DBI::Replicated::Balancer'.$type
+      if ($type=~m/^::/);
+    $self->schema->ensure_class_loaded($type);
+    return $type->new(@args);
+}
 
 =head2 balancer_args
 
