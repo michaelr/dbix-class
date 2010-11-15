@@ -331,10 +331,7 @@ isa_ok $replicated->schema->storage->master
 isa_ok $replicated->schema->storage->pool
     => 'DBIx::Class::Storage::DBI::Replicated::Pool';
 
-##does_ok $replicated->schema->storage->balancer
-##    => 'DBIx::Class::Storage::DBI::Replicated::Balancer';
-    #
-ok $replicated->schema->storage->balancer->does('DBIx::Class::Storage::DBI::Replicated::Balancer'),
+ok  $replicated->schema->storage->balancer->does('DBIx::Class::Storage::DBI::Replicated::Balancer'),
   'does Balancer';
 
 ok my @replicant_connects = $replicated->generate_replicant_connect_info
@@ -395,17 +392,20 @@ ok scalar(keys(%{$replicated->schema->storage->pool->replicants}))
 is scalar(keys(%{$replicated->schema->storage->pool->replicants})), 2
     => 'has two replicants';
 
-##does_ok $replicated_storages[0]
-##    => 'DBIx::Class::Storage::DBI::Replicated::Replicant';
 
-##does_ok $replicated_storages[1]
-##    => 'DBIx::Class::Storage::DBI::Replicated::Replicant';
+ok $replicated_storages[0]->does('DBIx::Class::Storage::DBI::Replicated::Replicant'),
+  'does Replicant';
 
-##does_ok $replicated->schema->storage->replicants->{$replicant_names[0]}
-##    => 'DBIx::Class::Storage::DBI::Replicated::Replicant';
+ok $replicated_storages[1]->does('DBIx::Class::Storage::DBI::Replicated::Replicant'),
+  'does Replicant';
 
-##does_ok $replicated->schema->storage->replicants->{$replicant_names[1]}
-##    => 'DBIx::Class::Storage::DBI::Replicated::Replicant';
+ok $replicated->schema->storage->replicants->{$replicant_names[0]}
+    ->does('DBIx::Class::Storage::DBI::Replicated::Replicant'),
+    'Does Replicant';
+
+ok $replicated->schema->storage->replicants->{$replicant_names[1]}
+    ->does('DBIx::Class::Storage::DBI::Replicated::Replicant'),
+    'Does Replicant';
 
 ## Add some info to the database
 
