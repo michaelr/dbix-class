@@ -117,21 +117,18 @@ TESTSCHEMACLASSES: {
     ## Add a connect_info option to test option merging.
     ## --------------------------------------------------------------------- ##
 
-## TODO connect_info is lazily delegated, seems Class::Method::Modifiers doesnt
-## see it?
+    {
+    package DBIx::Class::Storage::DBI::Replicated;
 
-#    {
-#    package DBIx::Class::Storage::DBI::Replicated;
+    use Moo;
+    around connect_info => sub {
+      my ($next, $self, $info) = @_;
+      $info->[3]{master_option} = 1;
+      $self->$next($info);
+    };
 
-#    use Moo;
-#    around connect_info => sub {
-#      my ($next, $self, $info) = @_;
-#      $info->[3]{master_option} = 1;
-#      $self->$next($info);
-#    };
-
-#    no Moo;
-#    }
+    no Moo;
+    }
 
     ## --------------------------------------------------------------------- ##
     ## Subclass for when you are using SQLite for testing, this provides a fake
@@ -344,11 +341,8 @@ my @all_storage_opts =
   grep { (reftype($_)||'') eq 'HASH' }
     map @{ $_->_connect_info }, @all_storages;
 
-SKIP: {
-  skip "connect_info test skipped until monkey patch issue is solved", 1;
   is ((grep $_->{master_option}, @all_storage_opts), 3,
     'connect_info was merged from master to replicants');
-}
 
 my @replicant_names = keys %{ $replicated->schema->storage->replicants };
 
